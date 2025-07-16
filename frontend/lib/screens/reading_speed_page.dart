@@ -1,10 +1,15 @@
-import 'dart:convert';
+import 'dart:convert'; 
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:js/js_util.dart' as js_util;
 import 'js_interop.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'history_page.dart';  // HistoryPage로 이동하는 버튼을 위해
+
+
 
 class ReadingSpeedPage extends StatefulWidget {
   final String participantName;
@@ -35,25 +40,27 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
   }
 
   Future<void> _fetchPassage() async {
-    final uri = Uri.parse('http://localhost:8000/get-passages');
-    final body = jsonEncode({
-      "age": widget.participantAge,
-      "gender": "unknown", // you can replace this with actual value
-      "native_language": "korean", // you can make this dynamic too
-    });
-
     try {
       final response = await http.post(
-        uri,
+        Uri.parse('http://localhost:8000/get-passages'),
         headers: {'Content-Type': 'application/json'},
-        body: body,
+        body: jsonEncode({
+          "age": widget.participantAge,
+          "gender": "unknown",
+          "native_language": "korean",
+        }),
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        // Flutter Web: response.body 가 이미 Map<String,dynamic> 일 수 있음
+        final dynamic rawBody = response.body;
+        final Map<String, dynamic> data = rawBody is String
+            ? jsonDecode(rawBody) as Map<String, dynamic>
+            : Map<String, dynamic>.from(rawBody as Map);
+
         final passages = data['passages'] as List<dynamic>;
         setState(() {
-          expectedText = passages[0];
+          expectedText = passages[0] as String;
         });
       } else {
         setState(() => expectedText = 'GPT 지문을 불러오지 못했습니다.');
@@ -65,17 +72,19 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
     }
   }
 
+
   Future<void> _startRecording() async {
     try {
-      startMicRecording();
+    // JS promise를 await
+      await startMicRecording();
+
       _stopwatch.reset();
       _stopwatch.start();
-
       setState(() {
         _isRecording = true;
         _elapsedSeconds = 0;
       });
-
+    // 기존 타이머 로직 그대로…
       await Future.doWhile(() async {
         await Future.delayed(const Duration(seconds: 1));
         if (!_stopwatch.isRunning) return false;
@@ -95,15 +104,15 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
     });
 
     try {
-      final base64 = await js_util.promiseToFuture<String>(stopMicRecording());
-      final bytes = base64Decode(base64);
+    // JS promise → Uint8List로 바로 받음
+      final bytes = await stopMicRecording();
       await _sendToBackend(bytes);
     } catch (e) {
       print('❌ Error during stopRecording: $e');
-      _showErrorDialog('Recording failed. Please try again.');
+      _showErrorDialog('녹음 종료 실패: $e');
+    } finally {
+      setState(() => _isUploading = false);
     }
-
-    setState(() => _isUploading = false);
   }
 
   Future<void> _sendToBackend(Uint8List audioBytes) async {
@@ -120,18 +129,57 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
 
     try {
       final response = await request.send();
-      final body = await response.stream.bytesToString();
-
+      final body     = await response.stream.bytesToString();
       if (response.statusCode == 200) {
-        print('✅ Transcription result:\n$body');
-        _showResultDialog('Success', body);
+      // JSON 디코딩
+        final result = jsonDecode(body) as Map<String, dynamic>;
+
+      // 1) accuracy 파싱
+        final rawAcc = result['accuracy'];
+        double accuracy;
+        if (rawAcc is num) {
+          accuracy = rawAcc * 100;    // 소수→퍼센트
+        } else {
+          accuracy = double.parse(rawAcc as String) * 100;
+        }
+
+      // 2) words_read 파싱
+        final rawWords = result['words_read'] ?? result['words'] ?? 0;
+        final wordsRead = (rawWords is num)
+          ? rawWords.toInt()
+          : int.parse(rawWords as String);
+
+      // 3) duration_seconds 파싱
+        final rawDur = result['duration_seconds'] ?? result['duration'] ?? 0;
+        final durationSeconds = (rawDur is num)
+          ? rawDur.toInt()
+          : int.parse(rawDur as String);
+
+      // 4) Firestore에 저장
+        final uid = FirebaseAuth.instance.currentUser!.uid;
+        await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('reading_results')
+          .add({
+            'accuracy': accuracy,
+            'words_read': wordsRead,
+            'duration_seconds': durationSeconds,
+            'timestamp': FieldValue.serverTimestamp(),
+          });
+
+      // 5) 사용자에게 결과 보여주기
+        _showResultDialog(
+          'Reading Result',
+          '정확도: ${accuracy.toStringAsFixed(1)}%\n'
+          '읽은 단어 수: $wordsRead개\n'
+          '소요 시간: $durationSeconds초',
+        );
       } else {
-        print('❌ Upload failed: ${response.statusCode}');
-        _showErrorDialog('Upload failed. Code: ${response.statusCode}');
+        _showErrorDialog('Upload failed: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ Exception sending to backend: $e');
-      _showErrorDialog('Server error. Make sure backend is running.');
+      _showErrorDialog('Server error: $e');
     }
   }
 
@@ -163,6 +211,18 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
       appBar: AppBar(
         title: Text('${widget.participantName} — Age ${widget.participantAge}'),
         backgroundColor: const Color(0xFF81C784),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.history),
+            tooltip: '읽기 테스트 기록',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const HistoryPage()),
+              );
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

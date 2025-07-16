@@ -14,13 +14,13 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDeNaGZkya_rBNR4CicAbZ167bSr5hOjTk',
-    appId: '1:77545072676:web:f87abbec40ac5f0b4450b1',
-    messagingSenderId: '77545072676',
-    projectId: 'dyslexia-project-isaacch-a33a0',
-    authDomain: 'dyslexia-project-isaacch-a33a0.firebaseapp.com',
-    storageBucket: 'dyslexia-project-isaacch-a33a0.firebasestorage.app',
-    measurementId: 'G-3445ZQ1T7D',
+    apiKey: 'AIzaSyCoBdGEJth4Zlf2iggoAGRicuFgIA4H0Dg',
+    appId: '1:868486919694:web:32b1561c3cb94a20ffae5f',
+    messagingSenderId: '868486919694',
+    projectId: 'dyslexia-project-2025',
+    authDomain: 'dyslexia-project-2025.firebaseapp.com',
+    storageBucket: 'dyslexia-project-2025.firebasestorage.app',
+    measurementId: 'G-GZJF73YZYQ',
   );
 
 }

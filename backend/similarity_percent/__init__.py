@@ -1,6 +1,6 @@
 import Levenshtein as lev
 
-def score_reading(expected, recognized):
+def dist(expected, recognized):
     """
     두 문장 간의 Levenshtein 유사도를 백분율(0~100%)로 반환합니다.
     """

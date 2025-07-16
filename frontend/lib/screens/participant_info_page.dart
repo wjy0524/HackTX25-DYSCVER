@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'reading_speed_page.dart';
+import '../services/firestore_service.dart';
+import 'history_page.dart';  // ← 이 줄을 추가하세요
 
 class ParticipantInfoPage extends StatefulWidget {
   const ParticipantInfoPage({Key? key}) : super(key: key);
@@ -19,20 +21,40 @@ class _ParticipantInfoPageState extends State<ParticipantInfoPage> {
     _ageCtrl.dispose();
     super.dispose();
   }
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Error'),
+        content: Text(message),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
+        ],
+      ),
+    );
+  }
 
-  void _onNext() {
+  void _onNext() async {
     if (_formKey.currentState!.validate()) {
       final name = _nameCtrl.text.trim();
-      final age = int.parse(_ageCtrl.text.trim());
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ReadingSpeedPage(
-            participantName: name,
-            participantAge: age,
+     final age = int.parse(_ageCtrl.text.trim());
+    
+      try {
+      // 1) 파이어스토어에 유저 프로필 저장
+        await FirestoreService.saveUserProfile(age, 'unknown');
+      // 2) 다음 화면으로 이동
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ReadingSpeedPage(
+              participantName: name,
+              participantAge: age,
+            ),
           ),
-        ),
-      );
+        );
+      } catch (e) {
+        _showErrorDialog('프로필 저장 실패: $e');
+      }
     }
   }
 
@@ -51,13 +73,23 @@ class _ParticipantInfoPageState extends State<ParticipantInfoPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // 1) Scaffold 배경색을 연두색으로
       backgroundColor: const Color(0xFFE8F5E9),
-      // 2) AppBar 색상도 맞춤
       appBar: AppBar(
         title: const Text('이용자 정보'),
-        backgroundColor: const Color(0xFF81C784), // 짙은 연두
-        elevation: 0, // 그림자 없애기
+        backgroundColor: const Color(0xFF81C784),
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.history),
+            tooltip: '읽기 테스트 기록',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const HistoryPage()),
+              );
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),

@@ -1,6 +1,5 @@
 import os
 import json
-import openai
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -11,18 +10,25 @@ import subprocess
 from fastapi.middleware.cors import CORSMiddleware
 
 # STT 전사 함수 (별도 파일)
-from backend.transcribe import transcribe_korean_audio
+from transcribe import transcribe_korean_audio
 # 유사도 계산 함수 (별도 파일)
-from backend.similarity_percent import dist
+from similarity_percent import dist
 
-# .env 파일에 API 키를 저장하고 로드하려면 python-dotenv 사용
+from openai import OpenAI
 from dotenv import load_dotenv
 load_dotenv()  # .env 파일을 로드합니다
 
-# 환경 변수에서 OpenAI API 키 로드
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# 새 1.x 인터페이스용 클라이언트 인스턴스 생성
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Flutter 웹 호스트
+    allow_methods=["*"],
+    allow_headers=["*"],
+    allow_credentials=False,
+)
 
 class UserInfo(BaseModel):
     age: int
@@ -34,25 +40,29 @@ async def get_passages(info: UserInfo):
     """
     사용자의 인구통계 정보에 맞춰 GPT로부터 3개의 읽기 지문을 생성
     """
-    system_prompt = (
+    system_prompt = ( 
         "당신은 난독증 연구를 위한 읽기 지문 생성 전문가입니다.\n"
-        "입력으로 사용자의 인구통계학적 정보(예: 나이, 성별, 모국어)를 JSON 형태로 받으면,\n"
-        "연령대에 맞춘 지문 3개를 JSON 포맷으로 생성해 주세요."
+        "입력으로 사용자의 인구통계 정보(나이, 성별, 모국어)를 JSON 형태로 받으면,\n"
+        "연령대에 맞는 지문 3개를 생성해 주세요.\n"
+        "반드시 최상위에 `passages` 키만 포함된 순수 JSON 형식으로 출력하세요. "
+        "추가 설명은 절대 포함하지 마세요."
     )
-    # GPT 호출
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": json.dumps(info.dict())}
+            {"role": "user",   "content": json.dumps(info.dict())}
         ]
     )
-    # 반환된 JSON 문자열 파싱
+    raw = response.choices[0].message.content
+    print("▶ GPT 응답(raw):", raw)
+    # 파싱 및 에러 처리
     try:
-        passages = json.loads(response.choices[0].message.content)["passages"]
+        passages = json.loads(raw)["passages"]
     except (json.JSONDecodeError, KeyError) as e:
         raise HTTPException(status_code=500, detail=f"Passages 파싱 오류: {e}")
     return {"passages": passages}
+    
 
 @app.post("/reading_test")
 async def reading_test(
