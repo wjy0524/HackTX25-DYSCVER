@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from pathlib import Path
 import tempfile
 import subprocess
+import wave
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -105,5 +106,18 @@ async def reading_test(
     # 4) Levenshtein 기반 유사도 계산
     accuracy = dist(expected.strip(), recognized_text.strip())
 
-    # 5) 결과 반환
-    return JSONResponse({"accuracy": accuracy})
+    # 5) 단어 수 세기
+    words_read = len(recognized_text.strip().split())
+
+    # 6) 오디오 길이(초) 계산
+    with wave.open(wav_path, "rb") as wf:
+        frames = wf.getnframes()
+        rate   = wf.getframerate()
+        duration_seconds = int(frames / float(rate))
+
+# 7) 결과 반환 (accuracy, words_read, duration_seconds 모두 포함)
+    return JSONResponse({
+        "accuracy": accuracy,                 # 0~100%
+        "words_read": words_read,             # 읽은 단어 개수
+        "duration_seconds": duration_seconds, # 오디오 길이(초)
+    })

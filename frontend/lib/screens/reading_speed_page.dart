@@ -14,11 +14,13 @@ import 'history_page.dart';  // HistoryPage로 이동하는 버튼을 위해
 class ReadingSpeedPage extends StatefulWidget {
   final String participantName;
   final int participantAge;
+  final String participantGender;   // ← 추가
 
   const ReadingSpeedPage({
     Key? key,
     required this.participantName,
     required this.participantAge,
+    required this.participantGender, // ← 추가
   }) : super(key: key);
 
   @override
@@ -46,7 +48,7 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           "age": widget.participantAge,
-          "gender": "unknown",
+          "gender": widget.participantGender,
           "native_language": "korean",
         }),
       );
@@ -117,7 +119,6 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
 
   Future<void> _sendToBackend(Uint8List audioBytes) async {
     final uri = Uri.parse('http://localhost:8000/reading_test');
-
     final request = http.MultipartRequest('POST', uri)
       ..fields['expected'] = expectedText
       ..files.add(http.MultipartFile.fromBytes(
@@ -130,32 +131,20 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
     try {
       final response = await request.send();
       final body     = await response.stream.bytesToString();
+
       if (response.statusCode == 200) {
-      // JSON 디코딩
         final result = jsonDecode(body) as Map<String, dynamic>;
 
-      // 1) accuracy 파싱
-        final rawAcc = result['accuracy'];
-        double accuracy;
-        if (rawAcc is num) {
-          accuracy = rawAcc * 100;    // 소수→퍼센트
-        } else {
-          accuracy = double.parse(rawAcc as String) * 100;
-        }
+      // accuracy: 이미 0~100 범위
+        final double accuracy = (result['accuracy'] as num).toDouble();
 
-      // 2) words_read 파싱
-        final rawWords = result['words_read'] ?? result['words'] ?? 0;
-        final wordsRead = (rawWords is num)
-          ? rawWords.toInt()
-          : int.parse(rawWords as String);
+      // words_read
+        final int wordsRead = (result['words_read'] as num).toInt();
 
-      // 3) duration_seconds 파싱
-        final rawDur = result['duration_seconds'] ?? result['duration'] ?? 0;
-        final durationSeconds = (rawDur is num)
-          ? rawDur.toInt()
-          : int.parse(rawDur as String);
+      // duration_seconds
+        final int durationSeconds = (result['duration_seconds'] as num).toInt();
 
-      // 4) Firestore에 저장
+      // Firestore에 저장
         final uid = FirebaseAuth.instance.currentUser!.uid;
         await FirebaseFirestore.instance
           .collection('users')
@@ -168,7 +157,7 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
             'timestamp': FieldValue.serverTimestamp(),
           });
 
-      // 5) 사용자에게 결과 보여주기
+      // 사용자에게 결과 보여주기
         _showResultDialog(
           'Reading Result',
           '정확도: ${accuracy.toStringAsFixed(1)}%\n'
@@ -180,8 +169,8 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
       }
     } catch (e) {
       _showErrorDialog('Server error: $e');
-    }
-  }
+   }
+ }
 
   void _showResultDialog(String title, String content) {
     showDialog(
