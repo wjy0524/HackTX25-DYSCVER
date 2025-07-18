@@ -26,12 +26,16 @@ class HistoryPage extends StatelessWidget {
           if (!snap.hasData) return const Center(child: CircularProgressIndicator());
           final docs = snap.data!.docs;
           if (docs.isEmpty) return const Center(child: Text('아직 기록이 없습니다.'));
-
-          final spots = docs.map((d) {
-            final ts  = (d['timestamp'] as Timestamp).millisecondsSinceEpoch.toDouble();
-            final acc = (d['accuracy'] as num).toDouble();
-            return FlSpot(ts, acc);
-          }).toList();
+          
+          // ─────────── 차트 ───────────
+          final spots = docs
+            .asMap()
+            .entries
+            .map((e) => FlSpot(
+              e.key.toDouble(), 
+              (e.value['accuracy'] as num).toDouble(),
+            ))
+            .toList();
 
           return Padding(
             padding: const EdgeInsets.all(16),
@@ -39,18 +43,42 @@ class HistoryPage extends StatelessWidget {
               children: [
                 SizedBox(height: 200, child: AccuracyChart(spots: spots)),
                 const SizedBox(height: 24),
+
+                // ─────────── 테이블 ───────────
                 Expanded(
-                  child: ListView.builder(
-                    itemCount: docs.length,
-                    itemBuilder: (_, i) {
-                      final d  = docs[i];
-                      final dt = (d['timestamp'] as Timestamp).toDate();
-                      final fmt = '${dt.month}/${dt.day} ${dt.hour}:${dt.minute}';
-                      return ListTile(
-                        title: Text('Accuracy: ${(d['accuracy']*100).toStringAsFixed(1)}%'),
-                        subtitle: Text('Words: ${d['words_read']}, Time: ${d['duration_seconds']}s\n$fmt'),
-                      );
-                    },
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.vertical,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: DataTable(
+                        headingRowColor: MaterialStateProperty.all(Colors.green.shade50),
+                        dataRowColor: MaterialStateProperty.resolveWith((states) {
+                          return states.contains(MaterialState.selected)
+                            ? Colors.green.shade100
+                            : null;
+                        }),
+                        columnSpacing: 24,
+                        columns: const [
+                          DataColumn(label: Text('날짜', style: TextStyle(fontWeight: FontWeight.bold))),
+                          DataColumn(label: Text('정확도', style: TextStyle(fontWeight: FontWeight.bold))),
+                          DataColumn(label: Text('단어수', style: TextStyle(fontWeight: FontWeight.bold))),
+                          DataColumn(label: Text('소요시간', style: TextStyle(fontWeight: FontWeight.bold))),
+                        ],
+                        rows: docs.map((d) {
+                          final ts   = (d['timestamp'] as Timestamp).toDate();
+                          final date = '${ts.month}/${ts.day} ${ts.hour}:${ts.minute.toString().padLeft(2,'0')}';
+                          final acc   = (d['accuracy'] as num).toDouble();
+                          final words = (d['words_read'] as num).toInt();
+                          final secs  = (d['duration_seconds'] as num).toInt();
+                          return DataRow(cells: [
+                            DataCell(Text(date)),
+                            DataCell(Text('${acc.toStringAsFixed(1)}%')),
+                            DataCell(Text('$words')),
+                            DataCell(Text('${secs}초')),
+                          ]);
+                        }).toList(),
+                      ),
+                    ),
                   ),
                 ),
               ],

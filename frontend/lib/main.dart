@@ -7,6 +7,7 @@ import 'firebase_options.dart';      // flutterfire cli 로 생성된 파일
 import 'screens/auth_home_page.dart';
 import 'screens/participant_info_page.dart';
 import 'screens/reading_speed_page.dart';
+import 'screens/main_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,6 +25,10 @@ class MyApp extends StatelessWidget {
       title: 'Dyslexia App',
       theme: ThemeData(primarySwatch: Colors.green),
       home: AuthGate(),
+      routes: {
+        '/auth_home_page': (context) => const AuthHomePage(),
+      }, 
+      
     );
   }
 }
@@ -41,7 +46,7 @@ class AuthGate extends StatelessWidget {
         final user = snap.data;
         if (user == null) {
           // 로그인 전
-          return const AuthHomePage();
+          return const MainPage();
         }
         // 로그인 후, 프로필 정보가 있는지 체크하고 없으면 ParticipantInfoPage
         // (여기선 단순히 바로 ParticipantInfoPage 로 보냄)

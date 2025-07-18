@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from transcribe import transcribe_korean_audio
 # 유사도 계산 함수 (별도 파일)
 from similarity_percent import dist
+from utils import compute_eye_metrics
 
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -28,7 +29,7 @@ app.add_middleware(
     allow_origins=["*"],  # Flutter 웹 호스트
     allow_methods=["*"],
     allow_headers=["*"],
-    allow_credentials=False,
+    allow_credentials=True,
 )
 
 class UserInfo(BaseModel):
@@ -68,6 +69,7 @@ async def get_passages(info: UserInfo):
 @app.post("/reading_test")
 async def reading_test(
     expected: str = Form(..., description="기준 문장"),
+    eye_data: str = Form(...),
     audio: UploadFile = File(..., description="사용자 녹음 파일(.webm 등)")
 ):
     """
@@ -114,10 +116,27 @@ async def reading_test(
         frames = wf.getnframes()
         rate   = wf.getframerate()
         duration_seconds = int(frames / float(rate))
+    # 7) eye_data 파싱 & 메트릭 계산
+    try:
+        gaze_points = json.loads(eye_data)
+    except json.JSONDecodeError:
+        gaze_points = []
+    fixation_count, avg_fix_dur, regression_count = compute_eye_metrics(gaze_points)
 
-# 7) 결과 반환 (accuracy, words_read, duration_seconds 모두 포함)
+    # 추가 지표
+    cognitive_load = (sum(pt['t'] for pt in gaze_points) / len(gaze_points)) \
+                     if gaze_points else 0
+    fluency_score  = words_read / (regression_count + 1)
+
+
+# 8) 결과 반환 (accuracy, words_read, duration_seconds 모두 포함)
     return JSONResponse({
-        "accuracy": accuracy,                 # 0~100%
-        "words_read": words_read,             # 읽은 단어 개수
-        "duration_seconds": duration_seconds, # 오디오 길이(초)
+        "accuracy":             accuracy,            # 0~100%
+        "words_read":           words_read,
+        "duration_seconds":     duration_seconds,
+        "fixation_count":       fixation_count,
+        "avg_fixation_duration": avg_fix_dur,         # ms 단위
+        "regression_count":     regression_count,
+        "cognitive_load":       cognitive_load,      # 대략적 부하 지표
+        "fluency_score":        fluency_score,       # 유창성 지표
     })
