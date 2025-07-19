@@ -2,9 +2,20 @@
 import 'package:flutter/material.dart';
 import '../services/firestore_service.dart';
 import 'reading_speed_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'main_menu_page.dart';          // ← 이걸 추가
+
 
 class ParticipantInfoPage extends StatefulWidget {
-  const ParticipantInfoPage({Key? key}) : super(key: key);
+  /// 편집 모드면 true (메인 메뉴 ▶ 프로필 수정)
+  /// 등록 모드면 false (로그인 후 첫 진입 ▶ 프로필 입력)
+  final bool isEditing;
+
+  const ParticipantInfoPage({
+    Key? key,
+    this.isEditing = false,
+  }) : super(key: key);
 
   @override
   State<ParticipantInfoPage> createState() => _ParticipantInfoPageState();
@@ -19,6 +30,36 @@ class _ParticipantInfoPageState extends State<ParticipantInfoPage> {
   String? _selectedEducation;
 
   @override
+  void initState() {
+    super.initState();
+    // isEditing 모드라면 파이어스토어에서 기존 프로필 불러오기
+    if (widget.isEditing) {
+      _loadExistingProfile();
+    }
+  }
+
+  Future<void> _loadExistingProfile() async {
+    try {
+      final uid = FirebaseAuth.instance.currentUser!.uid;
+      final snap = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
+      if (snap.exists) {
+        final data = snap.data()!;
+        // 불러온 데이터를 각 컨트롤러/드롭다운에 반영
+        _nameCtrl.text      = (data['name'] ?? '') as String;
+        _ageCtrl.text       = (data['age'] ?? '').toString();
+        _selectedGender     = data['gender'] as String?;
+        _selectedEducation  = data['education'] as String?;
+        setState(() {}); // UI 갱신
+      }
+    } catch (e) {
+      _showErrorDialog('프로필 불러오기 실패: $e');
+    }
+  }
+
+  @override
   void dispose() {
     _nameCtrl.dispose();
     _ageCtrl.dispose();
@@ -29,7 +70,7 @@ class _ParticipantInfoPageState extends State<ParticipantInfoPage> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Error'),
+        title: const Text('오류'),
         content: Text(message),
         actions: [
           TextButton(
@@ -41,12 +82,11 @@ class _ParticipantInfoPageState extends State<ParticipantInfoPage> {
     );
   }
 
-  void _onNext() async {
+   void _onNext() async {
     if (!_formKey.currentState!.validate()) return;
-
-    final name = _nameCtrl.text.trim();
-    final age = int.parse(_ageCtrl.text.trim());
-    final gender = _selectedGender!;
+    final name      = _nameCtrl.text.trim();
+    final age       = int.parse(_ageCtrl.text.trim());
+    final gender    = _selectedGender!;
     final education = _selectedEducation!;
 
     try {
@@ -56,20 +96,22 @@ class _ParticipantInfoPageState extends State<ParticipantInfoPage> {
         gender: gender,
         education: education,
       );
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ReadingSpeedPage(
-            participantName: name,
-            participantAge: age,
-            participantGender: gender,
-          ),
-        ),
-      );
+
+      if (widget.isEditing) {
+        // 수정 모드: 이전 화면(메인 메뉴)으로 돌아가기
+        Navigator.pop(context);
+      } else {
+        // 신규 등록 모드: MainMenuPage 로 이동
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const MainMenuPage()),
+        );
+      }
     } catch (e) {
-      _showErrorDialog('프로필 저장 실패: \$e');
+      _showErrorDialog('프로필 저장 실패: $e');
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

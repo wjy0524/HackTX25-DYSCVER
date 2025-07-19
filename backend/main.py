@@ -7,7 +7,6 @@ from pathlib import Path
 import tempfile
 import subprocess
 import wave
-
 from fastapi.middleware.cors import CORSMiddleware
 
 # STT 전사 함수 (별도 파일)
@@ -140,3 +139,42 @@ async def reading_test(
         "cognitive_load":       cognitive_load,      # 대략적 부하 지표
         "fluency_score":        fluency_score,       # 유창성 지표
     })
+
+
+@app.post("/get-comprehension-material")
+async def get_comprehension_material(info: UserInfo):
+    """
+    3개의 이해도 지문(comprehension passages)과
+    각 지문당 2개의 질문(questions)을 생성합니다.
+    """
+    system_prompt = """
+당신은 난독증 이해도 평가용 지문과 객관식 4지선다형 질문 생성 전문가입니다.
+입력으로 사용자의 인구통계 정보(나이, 성별, 모국어)를 JSON 형태로 받으면,
+연령대에 맞는 **150~200단어 분량의 긴** 이해도 지문 3개를 생성하고,
+각 지문에 대해 **2개의 객관식** 질문을 생성해주세요.
+각 질문은 반드시 다음 구조의 JSON 객체로 만들어야 합니다:
+```json
+{
+  "question": "질문 텍스트",
+  "options": ["보기1","보기2","보기3","보기4"],
+  "answer": 2    // 정답 보기의 인덱스 (0~3)
+}
+```
+최상위에는 `comprehensions` 리스트만 포함된 순수 JSON을 출력하세요.
+추가 설명은 절대 포함하지마세요
+    """
+    user_json = json.dumps(info.dict())
+    res = client.chat.completions.create(
+      model="gpt-4o-mini",
+      messages=[
+        {"role": "system",  "content": system_prompt},
+        {"role": "user",    "content": user_json},
+      ],
+    )
+    raw = res.choices[0].message.content
+    try:
+        data = json.loads(raw)
+        # data == {"comprehensions": [ { "passage": str, "questions": [str, str] }, ... ] }
+    except Exception as e:
+        raise HTTPException(500, f"이해도 자료 파싱 실패: {e}")
+    return JSONResponse(data)

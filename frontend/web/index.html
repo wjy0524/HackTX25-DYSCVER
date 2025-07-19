@@ -7,7 +7,7 @@
   <meta name="description" content="A new Flutter project.">
   <!-- iOS meta tags & icons, favicon, title, manifest 등 기존 그대로 -->
   <style>
-    /* WebGazer의 비디오/캔버스 요소는 숨기되, 크기는 0×0이 아니도록 */
+    /* 디버깅 용으로 카메라 웹켑 다 뜨게 해 놓음 배포전에는 주석처리 지우면 됨
     #webgazerVideoFeed,
     #webgazerVideoContainer,
     #webgazerFaceOverlayCanvas {
@@ -16,7 +16,7 @@
       height: 1px !important;
       opacity: 0 !important;
       pointer-events: none;
-    }
+    }*/
     /* 커스텀 포인터 스타일 */
     #gazeIndicator {
       position: absolute;
@@ -35,48 +35,91 @@
   <script src="https://unpkg.com/webgazer/dist/webgazer.js"></script>
 
   <script>
-    window.startEyeTracking = async () => {
-      // (1) 커스텀 포인터 요소가 없다면 생성
-      if (!window._gazeIndicator) {
-        const div = document.createElement('div');
-        div.id = 'gazeIndicator';
-        document.body.appendChild(div);
-        window._gazeIndicator = div;
-      }
-      window._eyeData = [];
+  // 전역 데이터는 JS에서만 관리
+  window._eyeData = [];
 
-      // (2) WebGazer 시작 & 리스너 등록
-      await webgazer
-        .setGazeListener((data, timestamp) => {
-          if (data) {
-            // 포인터 위치 업데이트
-            window._gazeIndicator.style.left = data.x + 'px';
-            window._gazeIndicator.style.top  = data.y + 'px';
-            // raw 데이터 저장
-            window._eyeData.push({ x: data.x, y: data.y, t: timestamp });
-          }
-        })
-        .begin();
+  window.startEyeTracking = async () => {
+    // 포인터 생성 (한 번만)
+    if (!window._gazeIndicator) {
+      const div = document.createElement('div');
+      div.id = 'gazeIndicator';
+      Object.assign(div.style, {
+        position: 'fixed',
+        width: '16px', height: '16px',
+        background: 'rgba(255,0,0,0.7)',
+        borderRadius: '50%',
+        pointerEvents: 'none',
+        zIndex: 9999
+      });
+      document.body.appendChild(div);
+      window._gazeIndicator = div;
+    }
 
-      // (3) 웹캠 비디오 / 오버레이는 숨기기
-      webgazer
-        .showVideo(false)
-        .showFaceOverlay(false)
-        .showPredictionPoints(false);
+    // 새 캘리/추적 세션 시작 전 데이터 비우기
+    window._eyeData = [];
+
+    // WebGazer 시작 & 리스너
+    await webgazer
+      .setGazeListener((data, timestamp) => {
+        if (data?.x != null && data?.y != null) {
+          // 포인터 이동
+          window._gazeIndicator.style.transform = 
+            `translate(${data.x - 8}px, ${data.y - 8}px)`;
+          // raw 데이터 수집
+          window._eyeData.push({ x: data.x, y: data.y, t: timestamp });
+        }
+      })
+      .begin();
+    // 트래커 옵션 조정
+    webgazer.setRegression('ridge');        // ridge 회귀 모델
+    webgazer.applyKalmanFilter(true);       // 칼만 필터로 스무딩
+    webgazer.setTracker('clmtrackr');       // 얼굴 인식 엔진 변경
+
+    // UI 숨기기
+    //지금 일단 디버깅용으로 true로 카메라 다 켜놓음
+    webgazer
+      .showVideo(true)
+      .showFaceOverlay(true)
+      .showPredictionPoints(true);
+  };
+
+  window.stopEyeTracking = async () => {
+    await webgazer.clearGazeListener();
+    await webgazer.pause();
+
+    // 수집 데이터 복사
+    const result = window._eyeData.slice();
+    // 다음 세션을 위해 초기화
+    window._eyeData = [];
+
+    // 포인터 제거
+    if (window._gazeIndicator) {
+      window._gazeIndicator.remove();
+      window._gazeIndicator = null;
+    }
+
+    return result;
+  };
+</script>
+<!-- ① 단어 박스 수집 함수 정의 -->
+  <script>
+    window.collectWordBoxes = () => {
+      window._wordBoxes = Array.from(document.querySelectorAll('.word')).map(el => {
+        const r = el.getBoundingClientRect();
+        return { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+      });
     };
-
-    window.stopEyeTracking = async () => {
-      await webgazer.clearGazeListener();
-      await webgazer.pause();
-      // 포인터도 제거해 두면 깔끔
-      if (window._gazeIndicator) {
-        window._gazeIndicator.remove();
-        window._gazeIndicator = null;
-      }
-      return window._eyeData;
+  </script>
+   <!-- ② 저장된 박스 배열을 Dart 쪽에서 꺼내 쓸 수 있도록 getter 정의 -->
+  <script>
+    window.getWordBoxes = () => {
+      // 만약 collectWordBoxes() 를 아직 한 번도 호출하지 않았다면 빈 배열을 리턴
+      return window._wordBoxes || [];
     };
   </script>
 
-  <script src="flutter_bootstrap.js" async></script>
+  <script src="flutter_bootstrap.js" defer></script>
 </body>
 </html>
+
+

@@ -28,10 +28,8 @@ class _LoginPageState extends State<LoginPage> {
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const ParticipantInfoPage()),
-      );
+      // 로그인만 처리하고, 이전(AuthGate) 화면으로 돌아가기
+      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
     } on FirebaseAuthException catch (e) {
       setState(() {
         _error = e.message;

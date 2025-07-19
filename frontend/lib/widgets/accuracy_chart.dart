@@ -21,6 +21,8 @@ class AccuracyChart extends StatelessWidget {
         maxX: count > 1 ? count - 1 : 1,
         minY: 0,
         maxY: 100,
+         // ─── ① 차트 영역 밖 데이터는 절단 ───
+        clipData: FlClipData.all(),
         titlesData: FlTitlesData(
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
@@ -52,7 +54,7 @@ class AccuracyChart extends StatelessWidget {
         lineBarsData: [
           LineChartBarData(
             spots: spots,
-            isCurved: true,
+            isCurved: false,
             barWidth: 3,
             dotData: FlDotData(show: true),
           ),

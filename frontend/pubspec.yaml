@@ -21,6 +21,7 @@ dependencies:
   cloud_firestore: ^4.9.0
   intl: ^0.18.0 
   fl_chart: ^0.70.0   # 꺾은선·막대·파이 차트 등 지원
+  flutter_widget_from_html_core: ^0.17.0
 
 dev_dependencies:
   flutter_test:

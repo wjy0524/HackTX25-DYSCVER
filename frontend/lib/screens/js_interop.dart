@@ -1,54 +1,73 @@
 // lib/js_interop.dart
 
-@JS()
 library js_interop;
 
-import 'package:js/js.dart';
+import 'package:js/js_util.dart' as js_util;
 import 'dart:typed_data';
 import 'dart:convert';
-import 'package:js/js_util.dart' as js_util;
+import 'dart:ui';                     // ← Rect 사용을 위해 추가
 
-/// JS 전역 함수 호출용 외부 선언
-@JS('startMicRecording')
-external dynamic _startMicRecordingJS();
+/// ─── Mic Recording ───
 
-@JS('stopMicRecording')
-external dynamic _stopMicRecordingJS();
-
-/// JS Promise를 기다릴 수 있는 Dart Future 래퍼
 Future<void> startMicRecording() {
-  return js_util.promiseToFuture(_startMicRecordingJS());
+  final jsPromise = js_util.callMethod(js_util.globalThis, 'startMicRecording', []);
+  if (jsPromise == null) {
+    throw StateError('JS function startMicRecording not found');
+  }
+  return js_util.promiseToFuture<void>(jsPromise);
 }
 
-/// 녹음 종료 후 Promise로 받은 base64를 Uint8List로 디코딩
 Future<Uint8List> stopMicRecording() async {
-  final b64 = await js_util.promiseToFuture<String>(_stopMicRecordingJS());
-  return base64Decode(b64);
+  final jsPromise = js_util.callMethod(js_util.globalThis, 'stopMicRecording', []);
+  if (jsPromise == null) {
+    throw StateError('JS function stopMicRecording not found');
+  }
+  final base64Str = await js_util.promiseToFuture<String>(jsPromise);
+  return base64Decode(base64Str);
 }
 
-@JS('startEyeTracking')
-external dynamic _startEyeTrackingJS();
+/// ─── Eye Tracking ───
 
-@JS('stopEyeTracking')
-external dynamic _stopEyeTrackingJS();
-
-/// 눈동자 트래킹 시작
 Future<void> startEyeTracking() {
-  return js_util.promiseToFuture(_startEyeTrackingJS());
+  final jsPromise = js_util.callMethod(js_util.globalThis, 'startEyeTracking', []);
+  if (jsPromise == null) {
+    throw StateError('JS function startEyeTracking not found');
+  }
+  return js_util.promiseToFuture<void>(jsPromise);
 }
 
-/// 눈동자 트래킹 중지 후 수집된 데이터 반환
-/// 반환값은 List<Map<String, dynamic>> 형태:
-/// [ {'x': double?, 'y': double?, 't': int}, … ]
 Future<List<Map<String, dynamic>>> stopEyeTracking() async {
-  // JSPromise → Dart List<dynamic>
-  final raw = await js_util.promiseToFuture(_stopEyeTrackingJS());
-  // 각 항목에서 x, y, t 프로퍼티를 뽑아서 Dart Map으로 변환
-  return (raw as List).map((item) {
-    return {
-      'x': js_util.getProperty(item, 'x') as double?,
-      'y': js_util.getProperty(item, 'y') as double?,
-      't': (js_util.getProperty(item, 't') as num?)?.toInt(),
-    };
+  final jsPromise = js_util.callMethod(js_util.globalThis, 'stopEyeTracking', []);
+  if (jsPromise == null) {
+    throw StateError('JS function stopEyeTracking not found');
+  }
+  final raw = await js_util.promiseToFuture<List<dynamic>>(jsPromise);
+  return raw.map((item) => {
+        'x': js_util.getProperty(item, 'x') as double?,
+        'y': js_util.getProperty(item, 'y') as double?,
+        't': (js_util.getProperty(item, 't') as num?)?.toInt(),
+      }).toList();
+}
+
+/// ① HTML側 collectWordBoxes() 호출해서
+///    `.word` span들의 박스를 JS 전역(window._wordBoxes)에 저장
+void collectWordBoxes() {
+  js_util.callMethod(js_util.globalThis, 'collectWordBoxes', <Object>[]);
+}
+
+/// ② 저장된 박스 배열을 가져와 List<Rect>로 반환
+Future<List<Rect>> getWordBoxes() async {
+  // JS global getWordBoxes() 호출
+  final raw = js_util.callMethod(js_util.globalThis, 'getWordBoxes', <Object>[]);
+  final list = (raw as List).cast<dynamic>();
+  return list.map((item) {
+    final left   = js_util.getProperty(item, 'left')   as num;
+    final top    = js_util.getProperty(item, 'top')    as num;
+    final right  = js_util.getProperty(item, 'right')  as num;
+    final bottom = js_util.getProperty(item, 'bottom') as num;
+    return Rect.fromLTRB(
+      left.toDouble(), top.toDouble(),
+      right.toDouble(), bottom.toDouble(),
+    );
   }).toList();
 }

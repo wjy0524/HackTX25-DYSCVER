@@ -8,6 +8,61 @@ import 'js_interop.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'history_page.dart';
+import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
+
+class WordMetrics {
+  final int fixationCount;
+  final double avgFixationDuration;
+  final int regressionCount;
+
+  WordMetrics({
+    required this.fixationCount,
+    required this.avgFixationDuration,
+    required this.regressionCount,
+  });
+
+  static final zero = WordMetrics(
+    fixationCount: 0, avgFixationDuration: 0.0, regressionCount: 0,
+  );
+}
+// ② computeWordBasedMetrics 함수
+WordMetrics computeWordBasedMetrics(
+  List<Map<String, dynamic>> eyeData,
+  List<Rect> wordRects,
+) {
+  if (eyeData.isEmpty || wordRects.isEmpty) return WordMetrics.zero;
+
+  int fixationCount    = 0;
+  int regressionCount  = 0;
+  double totalFixDur   = 0;
+
+  int? prevBox;
+  int  prevTime = eyeData.first['t'] as int;
+
+  for (final sample in eyeData) {
+    final x = sample['x'] as double;
+    final y = sample['y'] as double;
+    final t = sample['t'] as int;
+
+    final idx = wordRects.indexWhere((r) => r.contains(Offset(x, y)));
+
+    if (idx == prevBox) {
+      totalFixDur += (t - prevTime);
+    } else {
+      if (prevBox != null) fixationCount++;
+      if (prevBox != null && idx < prevBox) regressionCount++;
+      prevBox  = idx >= 0 ? idx : null;
+      prevTime = t;
+    }
+  }
+
+  final avgFixDur = fixationCount > 0 ? totalFixDur / fixationCount : 0.0;
+  return WordMetrics(
+    fixationCount: fixationCount,
+    avgFixationDuration: avgFixDur,
+    regressionCount: regressionCount,
+  );
+}
 
 class ReadingSpeedPage extends StatefulWidget {
   final String participantName;
@@ -40,6 +95,13 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
   void initState() {
     super.initState();
     _fetchPassages();
+    }
+    /// ① 지문 텍스트를 `<span class="word">…</span>` 로 감싸 줄 HTML 생성기
+  String _buildHtmlFromText(String text) {
+    final tokens = text.split(RegExp(r'\s+'));
+    return tokens
+        .map((t) => '<span class="word">${HtmlEscape().convert(t)}</span>')
+        .join(' ');
   }
 
   Future<void> _fetchPassages() async {
@@ -69,57 +131,17 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
     }
   }
 
-  Future<void> _showCalibrationDialog() async {
-    final corners = [
-      Alignment.topLeft,
-      Alignment.topRight,
-      Alignment.bottomRight,
-      Alignment.bottomLeft,
-    ];
-    int idx = 0;
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSt) {
-          Future.delayed(const Duration(seconds: 1), () {
-            if (idx < corners.length - 1) {
-              idx++;
-              setSt(() {});
-            } else {
-              Navigator.of(ctx).pop();
-            }
-          });
-          return AlertDialog(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            content: SizedBox.expand(
-              child: Stack(
-                children: [
-                  Align(
-                    alignment: corners[idx],
-                    child: Container(
-                      width: 20, height: 20,
-                      decoration: const BoxDecoration(
-                        color: Colors.blueAccent,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
 
   Future<void> _startRecording() async {
     try {
-      await startMicRecording();
+      // ●— 여기서 단어 박스 좌표 갱신
+      js_util.callMethod(js_util.globalThis, 'collectWordBoxes', []);
+      // 1) 카메라·시선 추적 켜기
       await startEyeTracking();
-      await _showCalibrationDialog();
+      // 2) 캘리브레이션: 텍스트 박스 영역 위의 4×4 포인트 터치
+      await _showCalibrationDialogOverTextBox();
+      // 3) 녹음 시작
+      await startMicRecording();
 
       _stopwatch.reset();
       _stopwatch.start();
@@ -148,7 +170,17 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
     try {
       final bytes = await stopMicRecording();
       final eyeData = await stopEyeTracking();
-      await _sendToBackend(bytes, eyeData);
+
+       // 2) 단어 박스 좌표 가져오기
+      final wordRects    = await getWordBoxes();
+    // 3) 단어 기반 시선 메트릭 계산
+      final wordMetrics  = computeWordBasedMetrics(eyeData, wordRects);
+
+      await _sendToBackend(
+        bytes,
+        eyeData,
+        wordMetrics: wordMetrics,
+        );
       setState(() => _hasRecorded = true);
     } catch (e) {
       _showErrorDialog('녹음 종료 실패: $e');
@@ -157,11 +189,18 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
     }
   }
 
-  Future<void> _sendToBackend(Uint8List audioBytes, List<dynamic> eyeData) async {
+  Future<void> _sendToBackend(
+    Uint8List audioBytes,
+    List<dynamic> eyeData, {
+      required WordMetrics wordMetrics,
+    }) async {
     final uri = Uri.parse('http://localhost:8000/reading_test');
     final request = http.MultipartRequest('POST', uri)
       ..fields['expected'] = _passages[_currentIndex]
       ..fields['eye_data'] = jsonEncode(eyeData)
+      ..fields['fixation_count']      = wordMetrics.fixationCount.toString()
+      ..fields['avg_fixation_dur_ms'] = wordMetrics.avgFixationDuration.toStringAsFixed(0)
+      ..fields['regression_count']    = wordMetrics.regressionCount.toString()
       ..files.add(http.MultipartFile.fromBytes(
         'audio', audioBytes,
         filename: 'recording.webm',
@@ -285,6 +324,84 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
       ),
     );
   }
+  // ① 텍스트 컨테이너에 붙일 키
+  final GlobalKey _textBoxKey = GlobalKey();
+  Future<void> _showCalibrationDialogOverTextBox() async {
+  // ① 텍스트 박스 위치/크기 계산
+    final renderBox = _textBoxKey.currentContext!.findRenderObject() as RenderBox;
+    final rect      = renderBox.localToGlobal(Offset.zero) & renderBox.size;
+
+  // ② 5×5 포인트 계산
+    const int gridSize = 5;
+    final points = [
+      for (int r = 0; r < gridSize; r++)
+        for (int c = 0; c < gridSize; c++)
+          Offset(
+            rect.left   + rect.width  * c / (gridSize - 1),
+            rect.top    + rect.height * r / (gridSize - 1),
+          ),
+    ];
+
+    int idx = 0;
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSt) {
+          return Stack(
+            children: [
+            // 반투명 배경
+              GestureDetector(
+                onTap: () {}, // 바깥 터치 막기
+                child: Container(color: Colors.black45),
+              ),
+
+            // 캘리 포인트
+              Positioned(
+                left: points[idx].dx - 24,
+                top:  points[idx].dy - 24,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    // (버퍼 수집은 window.startEyeTracking() 내부에서 이미 실행됩니다)
+                  // 다음 포인트 혹은 종료
+                    if (idx < points.length - 1) {
+                      setSt(() => idx++);
+                    } else {
+                      Navigator.of(ctx).pop();
+                    }
+                  },
+                  child: Container(
+                    width: 48, height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.blueAccent.withOpacity(0.9),
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text('●', style: TextStyle(color: Colors.white, fontSize: 24)),
+                  ),
+                ),
+              ),
+
+            // 안내 텍스트
+              Positioned(
+                left: rect.left,
+                top:  rect.bottom + 8,
+                width: rect.width,
+                child: Text(
+                  '점(●)을 보고 클릭해 주세요 (${idx+1}/${points.length})',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+// 캘리브레이션이 끝나면 stopEyeTracking() 은 녹음 종료 시점에 호출하세요.
+}
 
   @override
   Widget build(BuildContext context) {
@@ -320,6 +437,7 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
           children: [
             Expanded(
               child: Container(
+                key: _textBoxKey,         // ← 여기에 키 추가
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -334,15 +452,28 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
                   ],
                 ),
                 child: SingleChildScrollView(
-                  child: Text(
-                    currentText,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      height: 1.6,
-                      color: Colors.black87,
-                    ),
+                  child: HtmlWidget(
+                // 1) 공백(\s+)으로 토큰화 → 조사 붙은 단어 단위 확보
+                  _buildHtmlFromText(currentText),
+        // 2) span-word 요소에 CSS 추가 (선택)
+                  customStylesBuilder: (element) {
+                    if (element.classes.contains('word')) {
+                      return {
+                        'display': 'inline-block',
+                        'padding': '0 2px',    // 단어 앞뒤 살짝 여백
+                      };
+                    }
+                    return null;
+                  },
+        // 3) 기본 텍스트 스타일 조정
+                  textStyle: const TextStyle(
+                    fontSize: 50,
+                    height: 3,
+                    letterSpacing: 5,
+                    color: Colors.black87,
                   ),
                 ),
+              ),
               ),
             ),
             const SizedBox(height: 24),

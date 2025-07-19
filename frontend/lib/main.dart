@@ -8,6 +8,10 @@ import 'screens/auth_home_page.dart';
 import 'screens/participant_info_page.dart';
 import 'screens/reading_speed_page.dart';
 import 'screens/main_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'screens/main_menu_page.dart';   // ← 추가
+
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,7 +32,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/auth_home_page': (context) => const AuthHomePage(),
       }, 
-      
+
     );
   }
 }
@@ -39,18 +43,33 @@ class AuthGate extends StatelessWidget {
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snap) {
+      builder: (ctx, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
         final user = snap.data;
         if (user == null) {
-          // 로그인 전
-          return const MainPage();
+          // 아직 로그인 안 한 상태
+          return const MainPage();  
         }
-        // 로그인 후, 프로필 정보가 있는지 체크하고 없으면 ParticipantInfoPage
-        // (여기선 단순히 바로 ParticipantInfoPage 로 보냄)
-        return const ParticipantInfoPage();
+        // 로그인 한 상태 → 프로필 유무 확인
+        return FutureBuilder<DocumentSnapshot>(
+          future: FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get(),
+          builder: (ctx, profSnap) {
+            if (profSnap.connectionState == ConnectionState.waiting) {
+              return const Scaffold(body: Center(child: CircularProgressIndicator()));
+            }
+            if (!profSnap.hasData || !profSnap.data!.exists) {
+              // 프로필이 아직 없으면 작성 페이지로
+              return ParticipantInfoPage();
+            }
+            // 프로필이 있으면 메인 메뉴로
+            return MainMenuPage();
+          },
+        );
       },
     );
   }
