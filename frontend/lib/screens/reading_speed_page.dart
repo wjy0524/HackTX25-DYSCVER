@@ -9,6 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'history_page.dart';
 import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
+import 'comprehension_page.dart';
 
 class WordMetrics {
   final int fixationCount;
@@ -307,10 +308,18 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
         _hasRecorded = false;
       });
     } else {
+      // 마지막 지문까지 다 읽었으면 → ComprehensionPage 로 이동
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const HistoryPage()),
+        MaterialPageRoute(
+          builder: (_) => ComprehensionPage(
+            age: widget.participantAge,
+            gender: widget.participantGender,
+            nativeLanguage: 'korean', // 필요에 따라 실제 언어값 전달
+          ),
+        ),
       );
+
     }
   }
 
