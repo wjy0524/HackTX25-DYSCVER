@@ -20,7 +20,7 @@ class HistoryPage extends StatelessWidget {
       .collection('users')
       .doc(uid)
       .collection('reading_results')
-      .orderBy('timestamp')
+      .orderBy('timestamp', descending: true)
       .snapshots();
 
     // 2) 이해도 결과 스트림
@@ -28,7 +28,7 @@ class HistoryPage extends StatelessWidget {
       .collection('users')
       .doc(uid)
       .collection('comprehension_results')
-      .orderBy('timestamp')
+      .orderBy('timestamp', descending: true)
       .snapshots();
 
     return Scaffold(

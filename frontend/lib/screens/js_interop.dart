@@ -1,5 +1,4 @@
 // lib/js_interop.dart
-
 library js_interop;
 
 import 'package:js/js_util.dart' as js_util;

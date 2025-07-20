@@ -408,9 +408,38 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
         },
       ),
     );
-
-// 캘리브레이션이 끝나면 stopEyeTracking() 은 녹음 종료 시점에 호출하세요.
-}
+  }
+  // 캘리브레이션이 끝나면 stopEyeTracking() 은 녹음 종료 시점에 호출하세요.
+  
+  //도움말 위젯 띄우는 method
+  void _showHelpDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('도움말'),
+        content: const Text(
+          "1. 화면 준비\n"
+          "화면에 나타나는 하얀색에 파란색 테두리의 점들을 나타나는 순서대로 눌러 눈 위치를 맞춰주세요.\n"
+          "작은 빨간색 점들이 눈을 따라갈텐데 빨간색 점들이 하얀색 점에 모여졌을때 하얀색 점을 눌러주셔야 보다 정확한 결과를 낼 수 있어요.\n\n"
+          "2. 지문 읽기 테스트\n"
+          "'지문 읽기 테스트'는 3번에 걸쳐서 진행됩니다.\n"
+          "‘start’ 버튼을 눌러 지문을 소리 내어 읽습니다. 읽는 동안 시간이 측정되며, 멈추려면 'stop’ 버튼을 눌러주세요.\n\n"
+          "3. 이해도 확인 테스트\n"
+          "'지문 읽기 테스트'가 끝나면 '이해도 확인 테스트'가 진행될겁니다.\n"
+          "'이해도 확인 테스트'는 지문을 읽은 후 이해도를 확인하기 위한 간단한 선택형 문제입니다.\n"
+          "세 지문이 주어지며, 각 지문당 2개의 객관식 독해문제로 구성됩니다.\n\n"
+          '4. 결과 보기\n'
+          "모든 단계를 마치면 ‘기록 보기’에서 지난 결과를 차트와 표로 확인할 수 있어요.\n",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('닫기'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -427,6 +456,12 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
         title: Text('지문 ${_currentIndex + 1}/${_passages.length}'),
         backgroundColor: const Color(0xFF81C784),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            tooltip: '도움말',
+            onPressed: _showHelpDialog,
+          ),
+          // 기록 보기 버튼
           IconButton(
             icon: const Icon(Icons.history),
             tooltip: '기록 보기',
@@ -574,4 +609,5 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
     );
   }
 }
+
 

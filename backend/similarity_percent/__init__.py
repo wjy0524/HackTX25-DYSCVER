@@ -1,22 +1,15 @@
 import Levenshtein as lev
 
-def dist(expected, recognized):
+def dist(expected: str, recognized: str) -> float:
     """
     두 문장 간의 Levenshtein 유사도를 백분율(0~100%)로 반환합니다.
+    lev.ratio()를 사용해 0~1 사이의 유사도를 계산한 뒤, 백분율로 변환.
     """
-    edit_distance = lev.distance(expected, recognized)
-    origin_len = len(expected)
-    comp_len = len(recognized)
-    total_length = (origin_len + comp_len) / 2
+    # ratio() returns a float in [0,1]
+    similarity_percentage = lev.ratio(expected, recognized) * 100
 
-    # 유사도가 음수가 되는 경우를 방지
-    if edit_distance > total_length:
-        similarity_percentage = 0
-    else:
-        similarity_percentage = (1 - (edit_distance / total_length)) * 100
-
-    print(f"🎯 Expected: {expected}")
+    print(f"🎯 Expected:   {expected}")
     print(f"🗣️  Recognized: {recognized}")
-    print(f"✅ Accuracy: {similarity_percentage}%")
+    print(f"✅ Accuracy:   {similarity_percentage:.1f}%")
 
     return similarity_percentage
