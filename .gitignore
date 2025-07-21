@@ -3,3 +3,6 @@
 .metadata/
 
 .DS_Store
+backend/venv/
+
+frontend/.dart_tool/
