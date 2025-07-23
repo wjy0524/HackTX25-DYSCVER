@@ -340,8 +340,8 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
     final renderBox = _textBoxKey.currentContext!.findRenderObject() as RenderBox;
     final rect      = renderBox.localToGlobal(Offset.zero) & renderBox.size;
 
-  // ② 5×5 포인트 계산
-    const int gridSize = 5;
+  // ② 3x3 포인트 계산
+    const int gridSize = 3;
     final points = [
       for (int r = 0; r < gridSize; r++)
         for (int c = 0; c < gridSize; c++)
