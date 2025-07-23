@@ -1,8 +1,0 @@
-fastapi
-uvicorn[standard]
-openai
-python-dotenv
-python-multipart
-aiofiles
-openai-whisper
-python-Levenshtein
