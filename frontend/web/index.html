@@ -21,12 +21,14 @@
     #gazeIndicator {
       position: absolute;
       width: 16px; height: 16px;
-      background: rgba(255,0,0,0.7);
+      background: rgb(240, 5, 5);
       border-radius: 50%;
       pointer-events: none;
       z-index: 9999;
       transform: translate(-50%, -50%);
     }
+
+    
   </style>
       <!-- 1) FlutterFire CLI 로 생성된 설정을 직접 쓰지 않고 수동 초기화하려면: -->
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
@@ -57,7 +59,7 @@
 
   window.startEyeTracking = async () => {
     // 포인터 생성 (한 번만)
-    /*if (!window._gazeIndicator) {
+    if (!window._gazeIndicator) {
       const div = document.createElement('div');
       div.id = 'gazeIndicator';
       Object.assign(div.style, {
@@ -70,7 +72,7 @@
       });
       document.body.appendChild(div);
       window._gazeIndicator = div;
-    }*/
+    }
 
     // 새 캘리/추적 세션 시작 전 데이터 비우기
     window._eyeData = [];
