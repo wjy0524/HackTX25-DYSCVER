@@ -5,5 +5,5 @@
 .DS_Store
 backend/.config_secret/
 backend/.env/
-backend/venv/
+
 
