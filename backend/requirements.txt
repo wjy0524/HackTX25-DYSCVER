@@ -4,3 +4,5 @@ python-dotenv            # .env 로부터 환경변수 로딩
 openai                   # OpenAI API 클라이언트
 python-Levenshtein       # levenshtein 거리 계산
 python-multipart         # FastAPI 파일 업로드(Form, File 지원)
+transformers
+torch
