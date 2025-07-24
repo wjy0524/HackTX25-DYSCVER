@@ -1,0 +1,7 @@
+firebase-admin           # Firestore/Storage 등 Admin SDK
+transformers             # HuggingFace 모델 로딩 & infer
+torch                    # Transformers 백엔드 (CPU/GPU)
+pandas                   # 데이터 핸들링
+numpy                    # 수치 계산
+scikit-learn             # 간단한 ML 모델(로지스틱회귀·스케일링 등)
+python-dotenv            # .env 로딩

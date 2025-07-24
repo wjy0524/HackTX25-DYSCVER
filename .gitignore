@@ -1,9 +1,30 @@
-.flutter-plugins
-.flutter-plugins-dependencies
-.metadata/
+# --- 백엔드 (Python) ---
+/backend/venv/
+/backend/.env
+/backend/.config_secret/
 
+# 파이썬 캐시
+**/__pycache__/
+*.py[cod]
+
+# --- ML 파이프라인 (Python) ---
+/ml_pipeline/.venv/
+
+# --- 프론트엔드 (Flutter/Dart) ---
+**/.dart_tool/
+/build/
+
+# 로컬 설정
+/android/local.properties
+
+# Flutter 플러그인 메타
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+
+# --- 공통 ---
+# IDE 설정
+/.vscode/
+/.idea/
+
+# macOS
 .DS_Store
-backend/.config_secret/
-backend/.env/
-
-
