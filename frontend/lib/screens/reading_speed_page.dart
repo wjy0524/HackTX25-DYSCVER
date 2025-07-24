@@ -238,66 +238,51 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
         'timestamp': FieldValue.serverTimestamp(),
       });
 
-      _showEyeResultDialog(
-        _currentIndex,
-        accuracy: accuracy,
-        wordsRead: wordsRead,
-        durationSeconds: durationSeconds,
-        fixationCount: fixationCount,
-        avgFixationDuration: avgFixationDuration,
-        regressionCount: regressionCount,
-        cognitiveLoad: cognitiveLoad,
-        fluencyScore: fluencyScore,
-      );
+      _showEyeResultDialog();
     } else {
       _showErrorDialog('Upload failed: ${response.statusCode}');
     }
   }
 
-  void _showEyeResultDialog(
-    int roundIndex, {
-    required double accuracy,
-    required int wordsRead,
-    required int durationSeconds,
-    required int fixationCount,
-    required double avgFixationDuration,
-    required int regressionCount,
-    required double cognitiveLoad,
-    required double fluencyScore,
-  }) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        title: Text('지문 ${roundIndex + 1} 결과'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('정확도: ${accuracy.toStringAsFixed(1)}%'),
-            Text('읽은 단어 수: $wordsRead개'),
-            Text('소요 시간: ${durationSeconds}초'),
-            const Divider(),
-            Text('고정 시선 횟수: ${fixationCount}회'),
-            Text('평균 고정 지속시간: ${avgFixationDuration.toStringAsFixed(0)}ms'),
-            Text('역행 횟수: ${regressionCount}회'),
-            Text('인지 부하 지수: ${cognitiveLoad.toStringAsFixed(1)}'),
-            Text('유창성 점수: ${fluencyScore.toStringAsFixed(1)}'),
-          ],
+  void _showEyeResultDialog() {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => AlertDialog(
+      content: const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+        child: Text(
+          '수고하셨습니다!\n\n다음 단계를 위해 아래 버튼을 눌러주세요.',
+          textAlign: TextAlign.center,
         ),
-        actions: [
-          TextButton(
+      ),
+      actionsPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      actions: [
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
             onPressed: _goToNextRound,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF9575CD),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              elevation: 0,
+            ),
             child: Text(
               _currentIndex < _passages.length - 1
-                  ? '다음 지문 읽기'
-                  : '세션 종료',
+                ? '다음 지문 읽기'
+                : '이해도 테스트로 넘어가기',
+              style: const TextStyle(fontSize: 16),
             ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
 
   void _goToNextRound() {
     Navigator.pop(context);
@@ -571,38 +556,7 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
                   ),
                 ],
               ),
-            const SizedBox(height: 16),
-            if (!_isRecording && !_isUploading && _hasRecorded)
-              ElevatedButton(
-                onPressed: () {
-                  if (_currentIndex < _passages.length - 1) {
-                    setState(() {
-                      _currentIndex++;
-                      _elapsedSeconds = 0;
-                      _hasRecorded = false;
-                    });
-                  } else {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (_) => const HistoryPage()),
-                    );
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF81C784),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  textStyle: const TextStyle(fontSize: 16),
-                ),
-                child: Text(
-                  _currentIndex < _passages.length - 1
-                      ? '다음 지문 (${_currentIndex + 2}/${_passages.length})'
-                      : '테스트 종료',
-                ),
-              ),
+            
           ],
         ),
       ),
