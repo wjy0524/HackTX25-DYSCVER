@@ -7,8 +7,6 @@
 **/__pycache__/
 *.py[cod]
 
-# --- ML 파이프라인 (Python) ---
-/ml_pipeline/.venv/
 
 # --- 프론트엔드 (Flutter/Dart) ---
 **/.dart_tool/
