@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../widgets/bar_chart.dart';
 import 'main_menu_page.dart';
+import 'dyslexia_info_page.dart';
 
 class StatisticsPage extends StatelessWidget {
   const StatisticsPage({Key? key}) : super(key: key);
@@ -238,7 +239,10 @@ class StatisticsPage extends StatelessWidget {
               Expanded(
                 child: ElevatedButton(
                   onPressed: () {
-                    // TODO: DyslexiaInfoPage 구현 후 연결
+                     Navigator.push(
+                     context,
+                     MaterialPageRoute(builder: (_) => const DyslexiaInfoPage()),
+              );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: myColor,
@@ -255,8 +259,6 @@ class StatisticsPage extends StatelessWidget {
           ),
 
           const SizedBox(height: 24),
-
-
         ],
       ),
     );
