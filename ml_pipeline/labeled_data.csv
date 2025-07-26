@@ -1,0 +1,7 @@
+words_read,duration_seconds,accuracy,comprehension_correct,dyslexia_label
+120,30,85.3,2,0
+110,28,72.5,1,1
+130,32,90.0,2,0
+115,30,78.0,1,1
+140,29,92.5,2,0
+150,31,95.0,2,0

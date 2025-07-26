@@ -14,10 +14,15 @@ from transcribe import transcribe_korean_audio
 # 유사도 계산 함수 (별도 파일)
 from similarity_percent import dist
 from utils import compute_eye_metrics
+import joblib
 
 from openai import OpenAI
 from dotenv import load_dotenv
 load_dotenv()  # .env 파일을 로드합니다
+
+# 1) 파일 최상단(글로벌)에서 불러온 dyslexia 모델 ml_pipeline에 관한 것이다. 무시해도 좋다
+dyslexia_model = joblib.load("../ml_pipeline/best_dyslexia_rf.joblib")
+TOTAL_Q_PER_USER = 6
 
 # 새 1.x 인터페이스용 클라이언트 인스턴스 생성
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -178,3 +183,27 @@ async def get_comprehension_material(info: UserInfo):
     except Exception as e:
         raise HTTPException(500, f"이해도 자료 파싱 실패: {e}")
     return JSONResponse(data)
+
+
+#dyslexia 모델 ml_pipeline에 관한 것이다. 무시해도 좋다
+# 2) 요청 바디 스키마 정의
+class DyslexiaRequest(BaseModel):
+    words_read: int
+    duration_seconds: int
+    accuracy: float
+    comprehension_correct: int
+
+# 3) 엔드포인트 추가
+@app.post("/predict-dyslexia")
+def predict_dyslexia(req: DyslexiaRequest):
+    # 파생 변수: WPM, 이해율
+    wpm = req.words_read / (req.duration_seconds / 60)
+    comprehension_rate = req.comprehension_correct / 2  # 총 문제 수(2)로 나눔
+
+    # 모델 입력값 준비
+    X_new = [[wpm, req.accuracy, comprehension_rate]]
+
+    # 예측
+    risk_label = dyslexia_model.predict(X_new)[0]  # 0 or 1
+
+    return {"dyslexia_risk": int(risk_label)}
