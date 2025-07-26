@@ -29,3 +29,5 @@
 
 #machine learning 파이프라인
 /ml_pipeline/venv/
+
+/frontend/build/
