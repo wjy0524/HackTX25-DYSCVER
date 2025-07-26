@@ -16,6 +16,11 @@ class DyslexiaInfoPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 재사용 가능한 테마 색상
+    const myColor = Color(0xFF81C784);
+    const avgColor = Color(0xFFC8E6C9);
+    const titleColor = Color(0xFF388E3C);
+
     final resources = [
       {
         'title': '난독증 지원센터',
@@ -26,13 +31,15 @@ class DyslexiaInfoPage extends StatelessWidget {
       {
         'title': 'MSD 매뉴얼 – 난독증',
         'subtitle': '난독증 증상과 치료 가이드',
-        'url': 'https://www.msdmanuals.com/ko/home/%EC%95%84%EB%8F%99%EC%9D%98-%EA%B1%B4%EA%B0%95-%EB%AC%B8%EC%A0%9C/%ED%95%99%EC%8A%B5%EA%B3%BC-%EB%B0%9C%EB%8B%AC-%EC%9E%A5%EC%95%A0/%EB%82%9C%EB%8F%85%EC%A6%9D',
+        'url':
+            'https://www.msdmanuals.com/ko/home/%EC%95%84%EB%8F%99%EC%9D%98-%EA%B1%B4%EA%B0%95-%EB%AC%B8%EC%A0%9C/%ED%95%99%EC%8A%B5%EA%B3%BC-%EB%B0%9C%EB%8B%AC-%EC%9E%A5%EC%95%A0/%EB%82%9C%EB%8F%85%EC%A6%9D',
         'icon': Icons.menu_book,
       },
       {
         'title': '서울대어린이병원',
         'subtitle': '언어 치료 및 시지각 훈련 정보',
-        'url': 'https://child.snuh.org/health/nMedInfo/nView.do?category=DIS&medid=AA000594',
+        'url':
+            'https://child.snuh.org/health/nMedInfo/nView.do?category=DIS&medid=AA000594',
         'icon': Icons.healing,
       },
       {
@@ -53,7 +60,7 @@ class DyslexiaInfoPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('참고 자료'),
         centerTitle: true,
-        backgroundColor: Colors.green[800],
+        backgroundColor: myColor,
         elevation: 2,
       ),
       body: Padding(
@@ -63,11 +70,8 @@ class DyslexiaInfoPage extends StatelessWidget {
           children: [
             Text(
               '난독증 정보 및 지원',
-              style: Theme.of(context)
-                      .textTheme
-                      .titleLarge!
-                      .copyWith(
-                    color: Colors.teal[700],
+              style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                    color: titleColor,
                     fontWeight: FontWeight.bold,
                   ),
               textAlign: TextAlign.center,
@@ -86,10 +90,10 @@ class DyslexiaInfoPage extends StatelessWidget {
                     elevation: 3,
                     child: ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: Colors.teal.shade100,
+                        backgroundColor: avgColor,
                         child: Icon(
                           resource['icon'] as IconData,
-                          color: Colors.teal[700],
+                          color: myColor,
                         ),
                       ),
                       title: Text(
@@ -97,7 +101,7 @@ class DyslexiaInfoPage extends StatelessWidget {
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       subtitle: Text(resource['subtitle'] as String),
-                      trailing: const Icon(Icons.launch, color: Colors.grey),
+                      trailing: const Icon(Icons.launch, color: myColor),
                       onTap: () => _launchUrl(resource['url'] as String),
                     ),
                   );
@@ -108,7 +112,8 @@ class DyslexiaInfoPage extends StatelessWidget {
               icon: const Icon(Icons.home),
               label: const Text('메인으로 돌아가기'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.teal,
+                backgroundColor: myColor,
+                foregroundColor: Colors.black,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),

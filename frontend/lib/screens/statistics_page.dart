@@ -1,3 +1,5 @@
+// lib/screens/statistics_page.dart
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -46,11 +48,8 @@ class StatisticsPage extends StatelessWidget {
     final uid = FirebaseAuth.instance.currentUser!.uid;
 
     // 차트 색상: 나의 최신은 주 색상, 평균은 반투명으로
-    // 내 최신 결과: 주 테마 연두색
-    final myColor = const Color(0xFF81C784);  // 테마 메인 그린
-    // 다른 참가자 평균: 테마 연두색의 밝은 버전
-    final avgColor = const Color(0xFFC8E6C9);  // 연두 라이트
-  
+    final myColor = const Color(0xFF81C784);    // 테마 메인 그린
+    final avgColor = const Color(0xFFC8E6C9);   // 연두 라이트
 
     // 개인 결과 스트림
     final readingStream = FirebaseFirestore.instance
@@ -84,14 +83,14 @@ class StatisticsPage extends StatelessWidget {
           // ─── 읽기 통계 ─────────────────────────────
           Text(
             '📊 읽기 통계',
-            style: theme.textTheme.titleLarge
-                ?.copyWith(fontWeight: FontWeight.bold),
+            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
           legend(myColor, avgColor),
           Card(
             elevation: 4,
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
+              borderRadius: BorderRadius.circular(12),
+            ),
             margin: const EdgeInsets.symmetric(vertical: 8),
             color: theme.colorScheme.surface,
             child: Padding(
@@ -107,7 +106,7 @@ class StatisticsPage extends StatelessWidget {
                   for (final d in docsAll) {
                     final parent = d.reference.parent.parent;
                     if (parent == null || parent.id == uid) continue;
-                    buf.putIfAbsent(parent.id, () => <double>[])                    
+                    buf.putIfAbsent(parent.id, () => <double>[])
                         .add((d['accuracy'] as num).toDouble());
                   }
                   final otherAvgs = buf.values
@@ -128,8 +127,7 @@ class StatisticsPage extends StatelessWidget {
                       final lastAcc = (myDocs.last['accuracy'] as num).toDouble();
                       final mid = (otherAvgs.length / 2).floor();
                       final values = [...otherAvgs]..insert(mid, lastAcc);
-                      final colors = List<Color>.filled(
-                          values.length, avgColor)
+                      final colors = List<Color>.filled(values.length, avgColor)
                         ..[mid] = myColor;
                       return BarChartWithColors(
                         values: values,
@@ -147,14 +145,14 @@ class StatisticsPage extends StatelessWidget {
           // ─── 이해도 통계 ───────────────────────────
           Text(
             '📈 이해도 통계',
-            style: theme.textTheme.titleLarge
-                ?.copyWith(fontWeight: FontWeight.bold),
+            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
           legend(myColor, avgColor),
           Card(
             elevation: 4,
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
+              borderRadius: BorderRadius.circular(12),
+            ),
             margin: const EdgeInsets.symmetric(vertical: 8),
             color: theme.colorScheme.surface,
             child: Padding(
@@ -174,8 +172,7 @@ class StatisticsPage extends StatelessWidget {
                     final tot = (data['total_questions'] as num).toDouble();
                     final corr = (data['correct_answers'] as num).toDouble();
                     final pct = tot > 0 ? corr / tot * 100 : 0.0;
-                    buf.putIfAbsent(parent.id, () => <double>[])
-                        .add(pct);
+                    buf.putIfAbsent(parent.id, () => <double>[]).add(pct);
                   }
                   final otherAvgs = buf.values
                       .map((lst) => lst.reduce((a, b) => a + b) / lst.length)
@@ -198,8 +195,7 @@ class StatisticsPage extends StatelessWidget {
                       final lastPct = tot > 0 ? corr / tot * 100 : 0.0;
                       final mid = (otherAvgs.length / 2).floor();
                       final values = [...otherAvgs]..insert(mid, lastPct);
-                      final colors = List<Color>.filled(
-                          values.length, avgColor)
+                      final colors = List<Color>.filled(values.length, avgColor)
                         ..[mid] = myColor;
                       return BarChartWithColors(
                         values: values,
@@ -211,13 +207,16 @@ class StatisticsPage extends StatelessWidget {
               ),
             ),
           ),
+
           const SizedBox(height: 32),
 
-          // ─── 하단 버튼 ───────────────────────────
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton(
+          // ─── 하단 버튼 (너비 조정, 가운데 정렬) ───────────────────────────
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton(
                   onPressed: () {
                     Navigator.pushReplacement(
                       context,
@@ -227,35 +226,33 @@ class StatisticsPage extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: myColor,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    minimumSize: const Size(400, 48),  // 200px 너비
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(24),
                     ),
                   ),
                   child: const Text('메인 페이지로 돌아가기'),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: ElevatedButton(
+                const SizedBox(width: 40),
+                ElevatedButton(
                   onPressed: () {
-                     Navigator.push(
-                     context,
-                     MaterialPageRoute(builder: (_) => const DyslexiaInfoPage()),
-              );
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const DyslexiaInfoPage()),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: myColor,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    minimumSize: const Size(400, 48),  // 200px 너비
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(24),
                     ),
                   ),
                   child: const Text('난독증에 대한 정보'),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
 
           const SizedBox(height: 24),

@@ -3,11 +3,9 @@
 import 'package:flutter/material.dart';
 import '../model/comprehension.dart';
 import '../services/comprehension_service.dart';
-import 'history_page.dart'; // ← 추가
+import 'history_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
-
 
 class ComprehensionPage extends StatefulWidget {
   final int age;
@@ -48,59 +46,83 @@ class _ComprehensionPageState extends State<ComprehensionPage> {
     }
   }
 
-  void _showResult(List<ComprehensionItem> items) async{
-  final total = items.length * items[0].questions.length;
-  var correct = 0;
-  for (var i = 0; i < items.length; i++) {
-    for (var j = 0; j < items[i].questions.length; j++) {
-      if (_selected[i][j] == items[i].questions[j].answerIndex) {
-        correct++;
+  void _showResult(List<ComprehensionItem> items) async {
+    final total = items.length * items[0].questions.length;
+    var correct = 0;
+    for (var i = 0; i < items.length; i++) {
+      for (var j = 0; j < items[i].questions.length; j++) {
+        if (_selected[i][j] == items[i].questions[j].answerIndex) {
+          correct++;
+        }
       }
     }
-  }
 
-  final uid = FirebaseAuth.instance.currentUser!.uid;
-  try {
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('comprehension_results')
-        .add({
-      'timestamp': FieldValue.serverTimestamp(),
-      'total_questions': total,
-      'correct_answers': correct,
-    });
-  } catch (e) {
-    // 쓰기 에러만 잡아서 사용자에게 알림
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('결과 저장에 실패했습니다: $e')),
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('comprehension_results')
+          .add({
+        'timestamp': FieldValue.serverTimestamp(),
+        'total_questions': total,
+        'correct_answers': correct,
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('결과 저장에 실패했습니다: $e')),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('이해도 테스트 결과'),
+        content: Text('총 $total문제 중 $correct문제 정답'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const HistoryPage()),
+              );
+            },
+            child: const Text('결과 보기'),
+          ),
+        ],
+      ),
     );
-    return;  // 여기서 함수 종료!
   }
-
-  showDialog(
-    context: context,
-    barrierDismissible: false, // 사용자가 배경 탭으로 닫지 못하게
-    builder: (ctx) => AlertDialog(
-      title: const Text('이해도 테스트 결과'),
-      content: Text('총 $total문제 중 $correct문제 정답'),
-      actions: [
-        TextButton(
-          onPressed: () {
-            Navigator.of(ctx).pop(); // 다이얼로그 닫고
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => const HistoryPage()),
-            );
-          },
-          child: const Text('결과 보기'),
-        ),
-      ],
-    ),
-  );
-}
 
   @override
   Widget build(BuildContext context) {
+    // 직접 지정할 색상
+    const appBarColor     = Color(0xFF81C784);  // 상단 헤더
+    const passageBgColor  = Color(0xFFE8F5E9);  // 지문 배경
+    const buttonColor     = Color(0xFF1ABC9C);  // '다음' 버튼 (Start 버튼 색)
+    const buttonTextColor = Colors.white;
+    const textColor       = Colors.black87;
+
+    final tt = Theme.of(context).textTheme;
+
+    // 텍스트 스타일
+    final passageStyle = tt.bodyLarge?.copyWith(
+      fontSize: 20,
+      height: 1.8,
+      color: textColor,
+    );
+    final questionStyle = tt.titleMedium?.copyWith(
+      fontSize: 16,
+      fontWeight: FontWeight.w600,
+      color: textColor,
+    );
+    final optionStyle = tt.bodyMedium?.copyWith(
+      fontSize: 15,
+      color: textColor.withOpacity(0.8),
+    );
+
     return FutureBuilder<List<ComprehensionItem>>(
       future: _futureItems,
       builder: (ctx, snap) {
@@ -110,56 +132,115 @@ class _ComprehensionPageState extends State<ComprehensionPage> {
           );
         }
         if (snap.hasError || snap.data == null) {
-          return Scaffold(body: Center(child: Text('오류: ${snap.error}')));
+          return Scaffold(
+            backgroundColor: passageBgColor,
+            body: Center(child: Text('오류: ${snap.error}')),
+          );
         }
 
         final items = snap.data!;
-        // 첫 로딩 뒤에 _selected 초기화
         if (_selected.isEmpty) {
           for (var item in items) {
             _selected.add(List<int?>.filled(item.questions.length, null));
           }
         }
-
         final item = items[_current];
+
         return Scaffold(
+          backgroundColor: passageBgColor,
           appBar: AppBar(
-            title: Text('이해도 지문 ${_current + 1}/${items.length}'),
+            backgroundColor: appBarColor,
+            foregroundColor: buttonTextColor,
+            elevation: 0,
+            title: Text(
+              '이해도 지문 ${_current + 1}/${items.length}',
+              style: tt.titleLarge?.copyWith(color: buttonTextColor),
+            ),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
           ),
           body: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Column(
               children: [
-                Expanded(child: SingleChildScrollView(child: Text(item.passage))),
-                const SizedBox(height: 16),
-                // 질문별 RadioListTile
-                ...List.generate(item.questions.length, (qi) {
-                  final q = item.questions[qi];
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('${qi + 1}. ${q.question}'),
-                      ...List.generate(q.options.length, (oi) {
-                        return RadioListTile<int>(
-                          value: oi,
-                          groupValue: _selected[_current][qi],
-                          title: Text(q.options[oi]),
-                          onChanged: (v) {
-                            setState(() => _selected[_current][qi] = v);
-                          },
-                        );
-                      }),
-                      const SizedBox(height: 12),
-                    ],
-                  );
-                }),
-                const SizedBox(height: 8),
-                ElevatedButton(
-                  onPressed: _selected[_current].contains(null)
-                      ? null
-                      : () => _next(items),
-                  child: Text(
-                    _current + 1 < items.length ? '다음' : '제출',
+                // 지문 카드 (흰배경 유지)
+                Card(
+                  color: Colors.white,
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: SingleChildScrollView(
+                      child: Text(item.passage, style: passageStyle),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // 질문 & 옵션
+                Expanded(
+                  child: ListView.separated(
+                    itemCount: item.questions.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 16),
+                    itemBuilder: (ctx, qi) {
+                      final q = item.questions[qi];
+                      return Card(
+                        color: Colors.white,
+                        elevation: 1,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('${qi + 1}. ${q.question}', style: questionStyle),
+                              const SizedBox(height: 8),
+                              ...List.generate(q.options.length, (oi) {
+                                return RadioListTile<int>(
+                                  value: oi,
+                                  groupValue: _selected[_current][qi],
+                                  title: Text(q.options[oi], style: optionStyle),
+                                  contentPadding: EdgeInsets.zero,
+                                  activeColor: buttonColor,
+                                  onChanged: (v) {
+                                    setState(() => _selected[_current][qi] = v);
+                                  },
+                                );
+                              }),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+                // 다음/제출 버튼
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: buttonColor,
+                      foregroundColor: buttonTextColor,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    onPressed: _selected[_current].contains(null)
+                        ? null
+                        : () => _next(items),
+                    child: Text(
+                      _current + 1 < items.length ? '다음' : '제출',
+                      style: const TextStyle(fontSize: 16),
+                    ),
                   ),
                 ),
               ],

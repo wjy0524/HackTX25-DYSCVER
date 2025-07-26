@@ -7,3 +7,4 @@ python-multipart         # FastAPI 파일 업로드(Form, File 지원)
 transformers
 torch
 joblib
+scikit-learn
