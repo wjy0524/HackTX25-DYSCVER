@@ -117,7 +117,8 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
         }),
       );
       if (resp.statusCode == 200) {
-        final data = jsonDecode(resp.body) as Map<String, dynamic>;
+        final utf8Body = utf8.decode(resp.bodyBytes);
+        final data     = json.decode(utf8Body) as Map<String, dynamic>;
         final raw = data['passages'];
         setState(() {
           _passages = (raw as List).map((e) => e is Map && e.containsKey('text') ? e['text'] as String : e.toString()).toList();

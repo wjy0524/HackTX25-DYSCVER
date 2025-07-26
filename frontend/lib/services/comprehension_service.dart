@@ -21,7 +21,9 @@ Future<List<ComprehensionItem>> fetchComprehensionMaterial(
   if (resp.statusCode != 200) {
     throw Exception('Failed to load comprehension material');
   }
-  final data = jsonDecode(resp.body) as Map<String, dynamic>;
+    // 바디를 UTF8로 디코딩해서 한글 깨짐 방지
+  final utf8Body = utf8.decode(resp.bodyBytes);
+  final data = jsonDecode(utf8Body) as Map<String, dynamic>;
   return (data['comprehensions'] as List)
       .map((e) => ComprehensionItem.fromJson(e as Map<String, dynamic>))
       .toList();
