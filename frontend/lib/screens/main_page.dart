@@ -15,7 +15,7 @@ class MainPage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // 로고
-                Image.asset('assets/images/logo.png', width: 160),
+                Image.asset('assets/images/dyslexia_logo.png', width: 160),
                 const SizedBox(height: 16),
 
                 // DysTrace 타이틀 (letterSpacing 추가)

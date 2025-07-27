@@ -17,7 +17,7 @@ class HomePage extends StatelessWidget {
               Column(
                 children: [
                   const SizedBox(height: 60),
-                  Image.asset('assets/images/logo.png', width: 300),
+                  Image.asset('assets/images/dyslexia_logo.png', width: 300),
                   const SizedBox(height: 16),
                   Text(
                     '난독증 판별기',
