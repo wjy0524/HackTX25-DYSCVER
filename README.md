@@ -152,7 +152,16 @@ pip install -r requirements.txt
 
 9. 관리자에게 문의하기 기능 필요 (문제 발생 시 유저 피드백용)
 
-10. 챗봇 기능 추가 예정 (Q&A 및 네비게이션 도우미)
 
-11. 현재 UI/UX가 앱 형식처럼 보여 웹사이트답지 않음 → 전체적인 디자인 전문화 필요
+# 👥 개발자
+
+| 이름 | 사진 | 역할 | 소속(전공) | GitHub |
+|------|------|------|-----------|--------|
+| **심가은** | <img src="docs/devs/sim_ga_eun.png" width="80" alt="심가은" /> | 백엔드 · UI/UX | Computer Science @ USC | [@Sophiegs-cherry](https://github.com/Sophiegs-cherry) |
+| **원재연** | <img src="docs/devs/won_jae_yeon.png" width="80" alt="원재연" /> | 백엔드 · WebGazer · ML Pipeline | Computer Engineering @ UT Austin | [@wjy0524](https://github.com/wjy0524) |
+| **최태환** | ![KakaoTalk_Photo_2025-08-04-02-14-19](https://github.com/user-attachments/assets/4d3162dd-58af-4959-851a-c4fe77e096de)| 프론트엔드 · WebGazer | Computer Science @ UT Austin | [@isaacchoi031014](https://github.com/isaacchoi031014) |
+
+11. 챗봇 기능 추가 예정 (Q&A 및 네비게이션 도우미)
+
+12. 현재 UI/UX가 앱 형식처럼 보여 웹사이트답지 않음 → 전체적인 디자인 전문화 필요
 
