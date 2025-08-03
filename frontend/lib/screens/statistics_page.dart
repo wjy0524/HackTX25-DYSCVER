@@ -48,8 +48,9 @@ class StatisticsPage extends StatelessWidget {
     final uid = FirebaseAuth.instance.currentUser!.uid;
 
     // 차트 색상: 나의 최신은 주 색상, 평균은 반투명으로
-    final myColor = const Color(0xFF81C784);    // 테마 메인 그린
+    final myColor = const Color.fromARGB(255, 219, 125, 3);    // 테마 메인 그린
     final avgColor = const Color(0xFFC8E6C9);   // 연두 라이트
+    final backGroundColor = const Color(0xFF81C784);
 
     // 개인 결과 스트림
     final readingStream = FirebaseFirestore.instance
@@ -75,7 +76,7 @@ class StatisticsPage extends StatelessWidget {
       backgroundColor: theme.colorScheme.background,
       appBar: AppBar(
         title: const Text('통계 보기'),
-        backgroundColor: myColor,
+        backgroundColor: backGroundColor,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -224,7 +225,7 @@ class StatisticsPage extends StatelessWidget {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: myColor,
+                    backgroundColor: backGroundColor,
                     foregroundColor: Colors.white,
                     minimumSize: const Size(400, 48),  // 200px 너비
                     shape: RoundedRectangleBorder(
@@ -242,7 +243,7 @@ class StatisticsPage extends StatelessWidget {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: myColor,
+                    backgroundColor: backGroundColor,
                     foregroundColor: Colors.white,
                     minimumSize: const Size(400, 48),  // 200px 너비
                     shape: RoundedRectangleBorder(

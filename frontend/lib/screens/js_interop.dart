@@ -5,6 +5,7 @@ import 'package:js/js_util.dart' as js_util;
 import 'dart:typed_data';
 import 'dart:convert';
 import 'dart:ui';                     // ← Rect 사용을 위해 추가
+import 'package:js/js.dart';
 
 /// ─── Mic Recording ───
 
@@ -70,3 +71,6 @@ Future<List<Rect>> getWordBoxes() async {
     );
   }).toList();
 }
+
+@JS('resetWebGazer')
+external void resetWebGazer();

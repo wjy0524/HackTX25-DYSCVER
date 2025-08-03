@@ -87,17 +87,20 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
   int _elapsedSeconds = 0;
   Stopwatch _stopwatch = Stopwatch();
 
-
   List<String> _passages = [];
   int _currentIndex = 0;
   bool _hasRecorded = false;
 
   @override
   void initState() {
+    // Clean up any leftover indicators from previous sessions
+    _removeAllGazeIndicators();
+    resetWebGazer();
     super.initState();
     _fetchPassages();
-    }
-    /// ① 지문 텍스트를 `<span class="word">…</span>` 로 감싸 줄 HTML 생성기
+  }
+
+  /// ① 지문 텍스트를 `<span class="word">…</span>` 로 감싸 줄 HTML 생성기
   String _buildHtmlFromText(String text) {
     final tokens = text.split(RegExp(r'\s+'));
     return tokens
@@ -133,9 +136,9 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
     }
   }
 
-
   Future<void> _startRecording() async {
     try {
+      resetWebGazer();
       // ●— 여기서 단어 박스 좌표 갱신
       js_util.callMethod(js_util.globalThis, 'collectWordBoxes', []);
       // 1) 카메라·시선 추적 켜기
@@ -161,6 +164,34 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
     } catch (e) {
       _showErrorDialog('녹음 시작 실패: $e');
     }
+  }
+
+  // Add this method to completely remove all gaze indicators
+  void _removeAllGazeIndicators() {
+    js_util.callMethod(js_util.globalThis, 'eval', ['''
+      // Remove all existing gaze indicators
+      document.querySelectorAll('#gazeIndicator').forEach(el => el.remove());
+      // Clear the window reference
+      window._gazeIndicator = null;
+    ''']);
+  }
+
+  // Add this method to hide the gaze indicator
+  void _hideGazeIndicator() {
+    js_util.callMethod(js_util.globalThis, 'eval', ['''
+      if (window._gazeIndicator) {
+        window._gazeIndicator.style.display = 'none';
+      }
+    ''']);
+  }
+
+  // Add this method to show the gaze indicator (for debugging if needed)
+  void _showGazeIndicator() {
+    js_util.callMethod(js_util.globalThis, 'eval', ['''
+      if (window._gazeIndicator) {
+        window._gazeIndicator.style.display = 'block';
+      }
+    ''']);
   }
 
   Future<void> _stopRecording() async {
@@ -286,6 +317,10 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
 }
 
   void _goToNextRound() {
+    // Completely remove all old red dots before moving to next passage
+    _removeAllGazeIndicators();
+    resetWebGazer();
+
     Navigator.pop(context);
     if (_currentIndex < _passages.length - 1) {
       setState(() {
@@ -409,13 +444,13 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
           "작은 빨간색 점들이 눈을 따라갈텐데 빨간색 점들이 하얀색 점에 모여졌을때 하얀색 점을 눌러주셔야 보다 정확한 결과를 낼 수 있어요.\n\n"
           "2. 지문 읽기 테스트\n"
           "'지문 읽기 테스트'는 3번에 걸쳐서 진행됩니다.\n"
-          "‘start’ 버튼을 눌러 지문을 소리 내어 읽습니다. 읽는 동안 시간이 측정되며, 멈추려면 'stop’ 버튼을 눌러주세요.\n\n"
+          "'start' 버튼을 눌러 지문을 소리 내어 읽습니다. 읽는 동안 시간이 측정되며, 멈추려면 'stop' 버튼을 눌러주세요.\n\n"
           "3. 이해도 확인 테스트\n"
           "'지문 읽기 테스트'가 끝나면 '이해도 확인 테스트'가 진행될겁니다.\n"
           "'이해도 확인 테스트'는 지문을 읽은 후 이해도를 확인하기 위한 간단한 선택형 문제입니다.\n"
           "세 지문이 주어지며, 각 지문당 2개의 객관식 독해문제로 구성됩니다.\n\n"
           '4. 결과 보기\n'
-          "모든 단계를 마치면 ‘기록 보기’에서 지난 결과를 차트와 표로 확인할 수 있어요.\n",
+          "모든 단계를 마치면 '기록 보기'에서 지난 결과를 차트와 표로 확인할 수 있어요.\n",
         ),
         actions: [
           TextButton(
@@ -553,6 +588,7 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
                         ),
                       ),
                       child: const Text('Stop'),
+                      
                     ),
                   ),
                 ],
@@ -564,5 +600,3 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
     );
   }
 }
-
-
