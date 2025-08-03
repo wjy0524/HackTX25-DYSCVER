@@ -1,6 +1,6 @@
 # Dystrace (난독증 데이터 수집 플랫폼) 
 
-<img width="1144" height="960" alt="image" src="https://github.com/user-attachments/assets/455e2e3c-66b7-4144-9605-c7b2070173b8" />
+<img width="1144" height="760" alt="image" src="https://github.com/user-attachments/assets/455e2e3c-66b7-4144-9605-c7b2070173b8" />
 DysTrace는 읽기 정확도, 음성 발화 패턴, 이해도 점수, 그리고 실시간 시선 추적 정보를 자동으로 수집 및 분석하여 난독증 연구와 임상 진단을 지원하는 웹 플랫폼입니다.
 
 크로스‑플랫폼 Flutter Web 인터페이스에서 WebGazer.js가 웹캠 영상만으로 사용자의 시선을 실시간 추적하고, 마이크 권한을 통해 음성 데이터를 동시에 수집합니다. 백엔드에서는 FastAPI가
