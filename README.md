@@ -88,6 +88,8 @@ cd backend
 uvicorn main:app —reload
 ```
 
+## 2. 프론트앤드 서버
+
 ### 프론트앤드 실행 방법
 ```
 cd frontend
@@ -95,6 +97,7 @@ flutter clean
 flutter pub get
 flutter run -d chrome
 ```
+## 3. ml_pipeline 서버
 
 ### 옵션: ml_pipeline 실행
 ```
