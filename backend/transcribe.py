@@ -5,7 +5,7 @@ from transformers import pipeline
 # 1) 파이프라인 한 번만 생성
 asr_pipeline = pipeline(
     task="automatic-speech-recognition",
-    model="openai/whisper-small",
+    model="openai/whisper-medium",
     device=0,           # GPU 사용 시 0, CPU만 쓸 땐 "cpu"
     chunk_length_s=30,  # 긴 파일은 30초 단위로 자름
 )
