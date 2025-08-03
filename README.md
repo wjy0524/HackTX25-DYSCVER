@@ -150,7 +150,11 @@ pip install -r requirements.txt
 
     따라서 현재 웹 서비스에서는 ML 파이프라인을 활용하고 있지 않음
 
-9. 관리자에게 문의하기 기능 필요 (문제 발생 시 유저 피드백용)
+8. 관리자에게 문의하기 기능 필요 (문제 발생 시 유저 피드백용)
+
+9. 챗봇 기능 추가 예정 (Q&A 및 네비게이션 도우미)
+
+10. 현재 UI/UX가 앱 형식처럼 보여 웹사이트답지 않음 → 전체적인 디자인 전문화 필요
 
 
 # 👥 개발자
@@ -161,7 +165,4 @@ pip install -r requirements.txt
 | **원재연** | <img src="docs/devs/won_jae_yeon.png" width="80" alt="원재연" /> | 백엔드 · WebGazer · ML Pipeline | Computer Engineering @ UT Austin | [@wjy0524](https://github.com/wjy0524) |
 | **최태환** | ![KakaoTalk_Photo_2025-08-04-02-14-19](https://github.com/user-attachments/assets/4d3162dd-58af-4959-851a-c4fe77e096de)| 프론트엔드 · WebGazer | Computer Science @ UT Austin | [@isaacchoi031014](https://github.com/isaacchoi031014) |
 
-11. 챗봇 기능 추가 예정 (Q&A 및 네비게이션 도우미)
-
-12. 현재 UI/UX가 앱 형식처럼 보여 웹사이트답지 않음 → 전체적인 디자인 전문화 필요
 
