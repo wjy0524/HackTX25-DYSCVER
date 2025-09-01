@@ -163,9 +163,10 @@ pip install -r requirements.txt
 
 # 👥 개발자
 
+
 | 이름 | 사진 | 역할 | 소속(전공) | GitHub |
 |------|------|------|-----------|--------|
-| **심가은** | <img src="docs/devs/sim_ga_eun.png" width="80" alt="심가은" /> | 백엔드 · UI/UX · 프론트엔드 | Computer Science @ USC | [@Sophiegs-cherry](https://github.com/Sophiegs-cherry) |
+| **심가은** |![IMG_8339](https://github.com/user-attachments/assets/169da3bb-fc39-431c-9f88-d747e743d946)| 백엔드 · UI/UX · 프론트엔드 | Computer Science @ USC | [@Sophiegs-cherry](https://github.com/Sophiegs-cherry) |
 | **원재연** | ![IMG_4743](https://github.com/user-attachments/assets/f4e5ddbd-1e0b-46dc-9bd4-1e5b5702e933) | 백엔드 · WebGazer · ML Pipeline · 프론트엔드 | Computer Engineering @ UT Austin | [@wjy0524](https://github.com/wjy0524) |
 | **최태환** | ![KakaoTalk_Photo_2025-08-04-02-25-29](https://github.com/user-attachments/assets/5441256f-2cf7-41d0-8b06-4ac70c9122c6)| 프론트엔드 · WebGazer | Computer Science @ UT Austin | [@isaacchoi031014](https://github.com/isaacchoi031014) |
 
