@@ -89,7 +89,7 @@ Firebase Admin 키(JSON)는 backend/.config_secret/serviceAccountKey.json 에 �
 ### 백엔드 실행 방법
 ```
 cd backend
-uvicorn main:app —reload
+uvicorn main:app —-reload
 ```
 
 ## 2. 프론트앤드 서버
