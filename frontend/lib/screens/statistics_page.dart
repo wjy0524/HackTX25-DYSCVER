@@ -2,23 +2,20 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../widgets/bar_chart.dart';
+import '../widgets/main_layout.dart';
 import 'main_menu_page.dart';
 import 'dyslexia_info_page.dart';
 
 class StatisticsPage extends StatelessWidget {
   const StatisticsPage({Key? key}) : super(key: key);
 
-  /// Legend dot + label widget
   Widget _dotLabel(Color color, String text) {
     return Row(
       children: [
         Container(
           width: 12,
           height: 12,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 4),
         Text(text, style: const TextStyle(fontSize: 14)),
@@ -26,7 +23,6 @@ class StatisticsPage extends StatelessWidget {
     );
   }
 
-  /// Legend row
   Widget legend(Color myColor, Color avgColor) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -45,9 +41,9 @@ class StatisticsPage extends StatelessWidget {
     final theme = Theme.of(context);
     final uid = FirebaseAuth.instance.currentUser!.uid;
 
-    final myColor = const Color.fromARGB(255, 219, 125, 3);
-    final avgColor = const Color(0xFFC8E6C9);
-    final backGroundColor = const Color(0xFF81C784);
+    const myColor = Color.fromARGB(255, 219, 125, 3);
+    const avgColor = Color(0xFFC8E6C9);
+    const backGroundColor = Color(0xFF81C784);
 
     final readingStream = FirebaseFirestore.instance
         .collection('users')
@@ -69,14 +65,10 @@ class StatisticsPage extends StatelessWidget {
     final allCompStream =
         FirebaseFirestore.instance.collectionGroup('comprehension_results').snapshots();
 
-    return Scaffold(
-      backgroundColor: theme.colorScheme.background,
-      appBar: AppBar(
-        title: const Text('Statistics'),
-        backgroundColor: backGroundColor,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+    return MainLayout(
+      child: ListView(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
         children: [
           // ─── Reading Statistics ─────────────────────────────
           Text(
@@ -86,9 +78,7 @@ class StatisticsPage extends StatelessWidget {
           legend(myColor, avgColor),
           Card(
             elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             margin: const EdgeInsets.symmetric(vertical: 8),
             color: theme.colorScheme.surface,
             child: Padding(
@@ -127,10 +117,7 @@ class StatisticsPage extends StatelessWidget {
                       final values = [...otherAvgs]..insert(mid, lastAcc);
                       final colors = List<Color>.filled(values.length, avgColor)
                         ..[mid] = myColor;
-                      return BarChartWithColors(
-                        values: values,
-                        colors: colors,
-                      );
+                      return BarChartWithColors(values: values, colors: colors);
                     },
                   );
                 },
@@ -148,9 +135,7 @@ class StatisticsPage extends StatelessWidget {
           legend(myColor, avgColor),
           Card(
             elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             margin: const EdgeInsets.symmetric(vertical: 8),
             color: theme.colorScheme.surface,
             child: Padding(
@@ -195,61 +180,11 @@ class StatisticsPage extends StatelessWidget {
                       final values = [...otherAvgs]..insert(mid, lastPct);
                       final colors = List<Color>.filled(values.length, avgColor)
                         ..[mid] = myColor;
-                      return BarChartWithColors(
-                        values: values,
-                        colors: colors,
-                      );
+                      return BarChartWithColors(values: values, colors: colors);
                     },
                   );
                 },
               ),
-            ),
-          ),
-
-          const SizedBox(height: 32),
-
-          // ─── Bottom Buttons ───────────────────────────
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (_) => const MainMenuPage()),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: backGroundColor,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size(400, 48),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                  ),
-                  child: const Text('Back to Main Menu'),
-                ),
-                const SizedBox(width: 40),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const DyslexiaInfoPage()),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: backGroundColor,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size(400, 48),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                  ),
-                  child: const Text('Learn About Dyslexia'),
-                ),
-              ],
             ),
           ),
         ],

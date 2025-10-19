@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'main_menu_page.dart';
+import '../widgets/main_layout.dart';
 
 class DyslexiaInfoPage extends StatelessWidget {
   const DyslexiaInfoPage({Key? key}) : super(key: key);
@@ -20,14 +20,13 @@ class DyslexiaInfoPage extends StatelessWidget {
     const bgColor = Color(0xFFC8E6C9);
     const titleColor = Color(0xFF388E3C);
 
-    // ───── Local Dyslexia Clinics (Austin, TX area) ─────
     final clinicResources = <Map<String, dynamic>>[
       {
         'title': 'Dyslexia Center of Austin',
         'subtitle': 'Comprehensive dyslexia evaluation & intervention programs',
         'url': 'https://dyslexiacenterofaustin.org/',
         'icon': Icons.school,
-        'location': LatLng(30.2978, -97.8110), // Bee Caves Rd area
+        'location': LatLng(30.2978, -97.8110),
       },
       {
         'title': 'Rawson Saunders School',
@@ -52,7 +51,6 @@ class DyslexiaInfoPage extends StatelessWidget {
       },
     ];
 
-    // ───── Educational & Info Resources ─────
     final infoResources = <Map<String, String>>[
       {
         'title': 'International Dyslexia Association (IDA)',
@@ -72,30 +70,25 @@ class DyslexiaInfoPage extends StatelessWidget {
       },
     ];
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dyslexia Resources & Map'),
-        backgroundColor: primaryColor,
-        centerTitle: true,
-        elevation: 2,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // 1) Map Section
-            Text(
-              'Dyslexia Clinics in Austin, TX',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge!
-                  .copyWith(color: titleColor, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 200,
+    return MainLayout(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // ─── Map Section ─────────────────────────────
+          Text(
+            'Dyslexia Clinics in Austin, TX',
+            style: Theme.of(context)
+                .textTheme
+                .titleLarge!
+                .copyWith(color: titleColor, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 300,
+            width: 800,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
               child: FlutterMap(
                 options: MapOptions(
                   center: clinicResources.first['location'] as LatLng,
@@ -129,93 +122,91 @@ class DyslexiaInfoPage extends StatelessWidget {
                 ],
               ),
             ),
+          ),
 
-            const SizedBox(height: 24),
+          const SizedBox(height: 24),
 
-            // 2) Clinic List
-            ...clinicResources.map((res) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Card(
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  elevation: 3,
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: bgColor,
-                      child: Icon(res['icon'] as IconData, color: primaryColor),
+          // ─── Clinic List ─────────────────────────────
+          Text(
+            'Local Dyslexia Centers',
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium!
+                .copyWith(fontWeight: FontWeight.bold, color: titleColor),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: 800,
+            child: Column(
+              children: clinicResources.map((res) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Card(
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    elevation: 3,
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: bgColor,
+                        child:
+                            Icon(res['icon'] as IconData, color: primaryColor),
+                      ),
+                      title: Text(res['title'] as String,
+                          style:
+                              const TextStyle(fontWeight: FontWeight.w600)),
+                      subtitle: Text(res['subtitle'] as String),
+                      trailing:
+                          const Icon(Icons.launch, color: primaryColor),
+                      onTap: () => _launchUrl(res['url'] as String),
                     ),
-                    title: Text(res['title'] as String,
-                        style: const TextStyle(fontWeight: FontWeight.w600)),
-                    subtitle: Text(res['subtitle'] as String),
-                    trailing: const Icon(Icons.launch, color: primaryColor),
-                    onTap: () => _launchUrl(res['url'] as String),
                   ),
-                ),
-              );
-            }).toList(),
-
-            const Divider(thickness: 1.2),
-            const SizedBox(height: 12),
-
-            // 3) Information Resources
-            Text(
-              'Educational Resources & Organizations',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge!
-                  .copyWith(color: titleColor, fontWeight: FontWeight.bold),
+                );
+              }).toList(),
             ),
-            const SizedBox(height: 8),
-            ...infoResources.map((info) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Card(
-                  color: bgColor,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  child: ListTile(
-                    title: Text(info['title']!,
-                        style: const TextStyle(fontWeight: FontWeight.w600)),
-                    subtitle: Text(info['subtitle']!),
-                    trailing: const Icon(Icons.open_in_new, color: primaryColor),
-                    onTap: () => _launchUrl(info['url']!),
+          ),
+
+          const Divider(thickness: 1.2, height: 40),
+
+          // ─── Info Section ─────────────────────────────
+          Text(
+            'Educational Resources & Organizations',
+            style: Theme.of(context)
+                .textTheme
+                .titleLarge!
+                .copyWith(color: titleColor, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: 800,
+            child: Column(
+              children: infoResources.map((info) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Card(
+                    color: bgColor,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    child: ListTile(
+                      title: Text(info['title']!,
+                          style:
+                              const TextStyle(fontWeight: FontWeight.w600)),
+                      subtitle: Text(info['subtitle']!),
+                      trailing:
+                          const Icon(Icons.open_in_new, color: primaryColor),
+                      onTap: () => _launchUrl(info['url']!),
+                    ),
                   ),
-                ),
-              );
-            }).toList(),
-
-            const SizedBox(height: 24),
-
-            // 4) Return Button
-            Center(
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.home),
-                label: const Text('Back to Main Menu'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryColor,
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(
-                      vertical: 14, horizontal: 24),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                ),
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (_) => const MainMenuPage()),
-                  );
-                },
-              ),
+                );
+              }).toList(),
             ),
-
-            const SizedBox(height: 16),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
+
+
 
 
 

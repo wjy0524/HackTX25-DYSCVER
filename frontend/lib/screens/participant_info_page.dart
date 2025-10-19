@@ -1,19 +1,11 @@
 import 'package:flutter/material.dart';
-import '../services/firestore_service.dart';
-import 'reading_speed_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'main_menu_page.dart';
 
 class ParticipantInfoPage extends StatefulWidget {
-  /// If true → editing mode (from Main Menu)
-  /// If false → first-time registration after login
   final bool isEditing;
-
-  const ParticipantInfoPage({
-    Key? key,
-    this.isEditing = false,
-  }) : super(key: key);
+  const ParticipantInfoPage({Key? key, this.isEditing = false}) : super(key: key);
 
   @override
   State<ParticipantInfoPage> createState() => _ParticipantInfoPageState();
@@ -23,9 +15,9 @@ class _ParticipantInfoPageState extends State<ParticipantInfoPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   final _ageCtrl = TextEditingController();
-
   String? _selectedGender;
   String? _selectedEducation;
+  bool _loading = false;
 
   @override
   void initState() {
@@ -38,26 +30,31 @@ class _ParticipantInfoPageState extends State<ParticipantInfoPage> {
   Future<void> _loadExistingProfile() async {
     try {
       final uid = FirebaseAuth.instance.currentUser!.uid;
-      final snap =
-          await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final snap = await FirebaseFirestore.instance.collection('users').doc(uid).get();
       if (snap.exists) {
         final data = snap.data()!;
         _nameCtrl.text = (data['name'] ?? '') as String;
         _ageCtrl.text = (data['age'] ?? '').toString();
-        _selectedGender = data['gender'] as String?;
-        _selectedEducation = data['education'] as String?;
+
+        final g = (data['gender'] ?? '').toString();
+        final e = (data['education'] ?? '').toString();
+
+        _selectedGender = ['Male', 'Female', 'Other'].contains(g) ? g : null;
+        _selectedEducation = [
+          'Elementary School',
+          'Middle School',
+          'High School',
+          'University (Bachelor)',
+          'Graduate School (Master or higher)',
+        ].contains(e)
+            ? e
+            : null;
+
         setState(() {});
       }
     } catch (e) {
       _showErrorDialog('Failed to load profile: $e');
     }
-  }
-
-  @override
-  void dispose() {
-    _nameCtrl.dispose();
-    _ageCtrl.dispose();
-    super.dispose();
   }
 
   void _showErrorDialog(String message) {
@@ -67,40 +64,42 @@ class _ParticipantInfoPageState extends State<ParticipantInfoPage> {
         title: const Text('Error'),
         content: Text(message),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
         ],
       ),
     );
   }
 
-  void _onNext() async {
+  Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
+    setState(() => _loading = true);
+
     final name = _nameCtrl.text.trim();
     final age = int.parse(_ageCtrl.text.trim());
     final gender = _selectedGender!;
     final education = _selectedEducation!;
 
-    try {
-      await FirestoreService.saveUserProfile(
-        name: name,
-        age: age,
-        gender: gender,
-        education: education,
-      );
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    await FirebaseFirestore.instance.collection('users').doc(uid).set({
+      'name': name,
+      'age': age,
+      'gender': gender,
+      'education': education,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
 
-      if (widget.isEditing) {
-        Navigator.pop(context);
-      } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const MainMenuPage()),
-        );
-      }
-    } catch (e) {
-      _showErrorDialog('Failed to save profile: $e');
+    setState(() => _loading = false);
+
+    if (widget.isEditing) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile updated successfully!')),
+      );
+      Navigator.pop(context);
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const MainMenuPage()),
+      );
     }
   }
 
@@ -110,134 +109,114 @@ class _ParticipantInfoPageState extends State<ParticipantInfoPage> {
       backgroundColor: const Color(0xFFE8F5E9),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 60),
           child: Container(
-            padding: const EdgeInsets.all(24),
+            width: 650, // ✅ 카드 폭 키움
+            padding: const EdgeInsets.all(48), // ✅ 내부 여백 확장
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(22),
               boxShadow: const [
                 BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 12,
-                  offset: Offset(0, 6),
+                  color: Colors.black26,
+                  blurRadius: 25,
+                  offset: Offset(0, 8),
                 ),
               ],
             ),
             child: Form(
               key: _formKey,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Center(
-                    child: Text(
-                      'Enter Basic Information',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF388E3C),
-                      ),
+                  Text(
+                    widget.isEditing ? 'Edit Your Profile' : 'Enter Basic Information',
+                    style: const TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2E7D32),
                     ),
+                  ),
+                  const SizedBox(height: 36),
+
+                  // ─── Name ───
+                  TextFormField(
+                    controller: _nameCtrl,
+                    style: const TextStyle(fontSize: 18),
+                    decoration: _inputDecoration('Full Name'),
+                    validator: (v) => v == null || v.trim().isEmpty
+                        ? 'Please enter your name.'
+                        : null,
                   ),
                   const SizedBox(height: 24),
 
-                  TextFormField(
-                    controller: _nameCtrl,
-                    decoration: InputDecoration(
-                      labelText: 'Name',
-                      filled: true,
-                      fillColor: const Color(0xFFF1F8E9),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                    validator: (v) =>
-                        v == null || v.trim().isEmpty ? 'Please enter your name.' : null,
-                  ),
-                  const SizedBox(height: 16),
-
+                  // ─── Age ───
                   TextFormField(
                     controller: _ageCtrl,
-                    decoration: InputDecoration(
-                      labelText: 'Age',
-                      filled: true,
-                      fillColor: const Color(0xFFF1F8E9),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
                     keyboardType: TextInputType.number,
+                    style: const TextStyle(fontSize: 18),
+                    decoration: _inputDecoration('Age'),
                     validator: (v) {
-                      if (v == null || v.trim().isEmpty) {
-                        return 'Please enter your age.';
-                      }
+                      if (v == null || v.trim().isEmpty) return 'Please enter your age.';
                       final n = int.tryParse(v.trim());
-                      if (n == null || n <= 0) return 'Please enter a valid age.';
+                      if (n == null || n <= 0) return 'Enter a valid age.';
                       return null;
                     },
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
 
+                  // ─── Gender ───
                   DropdownButtonFormField<String>(
                     value: _selectedGender,
-                    decoration: InputDecoration(
-                      labelText: 'Gender',
-                      filled: true,
-                      fillColor: const Color(0xFFF1F8E9),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
+                    style: const TextStyle(fontSize: 18, color: Colors.black87),
+                    decoration: _inputDecoration('Gender'),
                     items: ['Male', 'Female', 'Other']
                         .map((g) => DropdownMenuItem(value: g, child: Text(g)))
                         .toList(),
                     onChanged: (v) => setState(() => _selectedGender = v),
                     validator: (v) => v == null ? 'Please select your gender.' : null,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
 
+                  // ─── Education ───
                   DropdownButtonFormField<String>(
                     value: _selectedEducation,
-                    decoration: InputDecoration(
-                      labelText: 'Education Level',
-                      filled: true,
-                      fillColor: const Color(0xFFF1F8E9),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
+                    style: const TextStyle(fontSize: 18, color: Colors.black87),
+                    decoration: _inputDecoration('Education Level'),
                     items: [
                       'Elementary School',
                       'Middle School',
                       'High School',
                       'University (Bachelor)',
                       'Graduate School (Master or higher)',
-                    ].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                    ]
+                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                        .toList(),
                     onChanged: (v) => setState(() => _selectedEducation = v),
-                    validator: (v) => v == null ? 'Please select your education level.' : null,
+                    validator: (v) =>
+                        v == null ? 'Please select your education level.' : null,
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 40),
 
                   SizedBox(
                     width: double.infinity,
+                    height: 58,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF66BB6A),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: const Color(0xFF43A047),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(14),
                         ),
+                        elevation: 8,
                       ),
-                      onPressed: _onNext,
-                      child: const Text(
-                        'Next',
-                        style: TextStyle(fontSize: 16, color: Colors.white),
-                      ),
+                      onPressed: _loading ? null : _saveProfile,
+                      child: _loading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : Text(
+                              widget.isEditing ? 'Save Changes' : 'Next',
+                              style: const TextStyle(fontSize: 20, color: Colors.white),
+                            ),
                     ),
                   ),
                 ],
@@ -248,4 +227,22 @@ class _ParticipantInfoPageState extends State<ParticipantInfoPage> {
       ),
     );
   }
+
+  InputDecoration _inputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(fontSize: 18),
+      filled: true,
+      fillColor: const Color(0xFFF1F8E9),
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 18, vertical: 18), // ✅ 입력창 크기 확장
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none,
+      ),
+    );
+  }
 }
+
+
+

@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../widgets/accuracy_chart.dart';
 import '../widgets/accuracy_chart.dart' as comp_chart;
+import '../widgets/main_layout.dart';
 import 'statistics_page.dart';
 
 class HistoryPage extends StatefulWidget {
@@ -132,13 +133,9 @@ class _HistoryPageState extends State<HistoryPage>
   Widget build(BuildContext context) {
     super.build(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('History'),
-        backgroundColor: _mainGreen,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+    return MainLayout(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ─── Reading Test ─────────────────────────────
           const Text(
@@ -153,8 +150,7 @@ class _HistoryPageState extends State<HistoryPage>
           Card(
             color: Colors.white,
             elevation: 2,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             margin: const EdgeInsets.only(bottom: 16),
             child: Padding(
               padding: const EdgeInsets.all(12),
@@ -163,100 +159,7 @@ class _HistoryPageState extends State<HistoryPage>
           ),
 
           // ─── Reading Table ─────────────────────────────
-          Card(
-            color: _lightGreen.withOpacity(0.3),
-            elevation: 1,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            margin: const EdgeInsets.only(bottom: 32),
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: Container(
-                height: 280,
-                decoration: BoxDecoration(
-                  border: Border.all(color: _lightGreen),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: LayoutBuilder(
-                  builder: (ctx, constraints) {
-                    final tableWidth = constraints.maxWidth;
-                    return Scrollbar(
-                      controller: _readingScrollCtrl,
-                      thumbVisibility: true,
-                      child: SingleChildScrollView(
-                        controller: _readingScrollCtrl,
-                        scrollDirection: Axis.vertical,
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(minWidth: tableWidth),
-                            child: StreamBuilder<QuerySnapshot>(
-                              stream: _readingStream,
-                              builder: (ctx, snap) {
-                                if (!snap.hasData) return const SizedBox();
-                                final docs = snap.data!.docs;
-                                return DataTable(
-                                  headingRowColor:
-                                      MaterialStateProperty.all(_lightGreen),
-                                  dataRowColor:
-                                      MaterialStateProperty.all(Colors.white),
-                                  columns: const [
-                                    DataColumn(
-                                        label: Text('Date',
-                                            style: TextStyle(
-                                                color: Colors.black))),
-                                    DataColumn(
-                                        label: Text('Accuracy',
-                                            style: TextStyle(
-                                                color: Colors.black))),
-                                    DataColumn(
-                                        label: Text('Words',
-                                            style: TextStyle(
-                                                color: Colors.black))),
-                                    DataColumn(
-                                        label: Text('Duration (s)',
-                                            style: TextStyle(
-                                                color: Colors.black))),
-                                  ],
-                                  rows: docs.map((d) {
-                                    final ts =
-                                        (d['timestamp'] as Timestamp).toDate();
-                                    final date =
-                                        '${ts.month}/${ts.day} ${ts.hour}:${ts.minute.toString().padLeft(2, '0')}';
-                                    final acc =
-                                        (d['accuracy'] as num).toDouble();
-                                    final words =
-                                        (d['words_read'] as num).toInt();
-                                    final secs =
-                                        (d['duration_seconds'] as num).toInt();
-                                    return DataRow(cells: [
-                                      DataCell(Text(date,
-                                          style: const TextStyle(
-                                              color: Colors.black))),
-                                      DataCell(Text(
-                                          '${acc.toStringAsFixed(1)}%',
-                                          style: const TextStyle(
-                                              color: Colors.black))),
-                                      DataCell(Text('$words',
-                                          style: const TextStyle(
-                                              color: Colors.black))),
-                                      DataCell(Text('$secs',
-                                          style: const TextStyle(
-                                              color: Colors.black))),
-                                    ]);
-                                  }).toList(),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-          ),
+          _buildReadingTable(),
 
           // ─── Comprehension Test ─────────────────────────────
           const Text(
@@ -271,8 +174,7 @@ class _HistoryPageState extends State<HistoryPage>
           Card(
             color: Colors.white,
             elevation: 2,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             margin: const EdgeInsets.only(bottom: 16),
             child: Padding(
               padding: const EdgeInsets.all(12),
@@ -281,122 +183,151 @@ class _HistoryPageState extends State<HistoryPage>
           ),
 
           // ─── Comprehension Table ─────────────────────────────
-          Card(
-            color: _lightGreen.withOpacity(0.3),
-            elevation: 1,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            margin: const EdgeInsets.only(bottom: 32),
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: Container(
-                height: 280,
-                decoration: BoxDecoration(
-                  border: Border.all(color: _lightGreen),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: LayoutBuilder(
-                  builder: (ctx, constraints) {
-                    final tableWidth = constraints.maxWidth;
-                    return Scrollbar(
-                      controller: _compScrollCtrl,
-                      thumbVisibility: true,
-                      child: SingleChildScrollView(
-                        controller: _compScrollCtrl,
-                        scrollDirection: Axis.vertical,
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(minWidth: tableWidth),
-                            child: StreamBuilder<QuerySnapshot>(
-                              stream: _compStream,
-                              builder: (ctx, snap) {
-                                if (!snap.hasData) return const SizedBox();
-                                final docs = snap.data!.docs;
-                                return DataTable(
-                                  headingRowColor:
-                                      MaterialStateProperty.all(_lightGreen),
-                                  dataRowColor:
-                                      MaterialStateProperty.all(Colors.white),
-                                  columns: const [
-                                    DataColumn(
-                                        label: Text('Date',
-                                            style: TextStyle(
-                                                color: Colors.black))),
-                                    DataColumn(
-                                        label: Text('Total Questions',
-                                            style: TextStyle(
-                                                color: Colors.black))),
-                                    DataColumn(
-                                        label: Text('Correct Answers',
-                                            style: TextStyle(
-                                                color: Colors.black))),
-                                    DataColumn(
-                                        label: Text('Accuracy (%)',
-                                            style: TextStyle(
-                                                color: Colors.black))),
-                                  ],
-                                  rows: docs.map((d) {
-                                    final data =
-                                        d.data()! as Map<String, dynamic>;
-                                    final ts = (data['timestamp'] as Timestamp)
-                                        .toDate();
-                                    final date =
-                                        '${ts.month}/${ts.day} ${ts.hour}:${ts.minute.toString().padLeft(2, '0')}';
-                                    final total =
-                                        data['total_questions'] as int;
-                                    final correct =
-                                        data['correct_answers'] as int;
-                                    final pct = total > 0
-                                        ? (correct / total * 100)
-                                            .toStringAsFixed(1)
-                                        : '0';
-                                    return DataRow(cells: [
-                                      DataCell(Text(date,
-                                          style: const TextStyle(
-                                              color: Colors.black))),
-                                      DataCell(Text('$total',
-                                          style: const TextStyle(
-                                              color: Colors.black))),
-                                      DataCell(Text('$correct',
-                                          style: const TextStyle(
-                                              color: Colors.black))),
-                                      DataCell(Text('$pct%',
-                                          style: const TextStyle(
-                                              color: Colors.black))),
-                                    ]);
-                                  }).toList(),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-          ),
+          _buildComprehensionTable(),
 
           // ─── Statistics Button ─────────────────────────────
-          ElevatedButton(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const StatisticsPage()),
+          const SizedBox(height: 24),
+          Center(
+            child: ElevatedButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const StatisticsPage()),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _mainGreen,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 40),
+                shape:
+                    RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('View Statistics'),
             ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _mainGreen,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('View Statistics'),
           ),
-          const SizedBox(height: 16),
         ],
       ),
     );
   }
+
+  Widget _buildReadingTable() {
+    return _buildDataTable(
+      stream: _readingStream,
+      scrollCtrl: _readingScrollCtrl,
+      columns: const [
+        'Date',
+        'Accuracy',
+        'Words',
+        'Duration (s)',
+      ],
+      rowBuilder: (d) {
+        final ts = (d['timestamp'] as Timestamp).toDate();
+        final date =
+            '${ts.month}/${ts.day} ${ts.hour}:${ts.minute.toString().padLeft(2, '0')}';
+        final acc = (d['accuracy'] as num).toDouble();
+        final words = (d['words_read'] as num).toInt();
+        final secs = (d['duration_seconds'] as num).toInt();
+        return [
+          date,
+          '${acc.toStringAsFixed(1)}%',
+          '$words',
+          '$secs',
+        ];
+      },
+    );
+  }
+
+  Widget _buildComprehensionTable() {
+    return _buildDataTable(
+      stream: _compStream,
+      scrollCtrl: _compScrollCtrl,
+      columns: const [
+        'Date',
+        'Total Questions',
+        'Correct Answers',
+        'Accuracy (%)',
+      ],
+      rowBuilder: (d) {
+        final data = d.data()! as Map<String, dynamic>;
+        final ts = (data['timestamp'] as Timestamp).toDate();
+        final date =
+            '${ts.month}/${ts.day} ${ts.hour}:${ts.minute.toString().padLeft(2, '0')}';
+        final total = data['total_questions'] as int;
+        final correct = data['correct_answers'] as int;
+        final pct = total > 0 ? (correct / total * 100).toStringAsFixed(1) : '0';
+        return [date, '$total', '$correct', '$pct%'];
+      },
+    );
+  }
+
+  Widget _buildDataTable({
+    required Stream<QuerySnapshot> stream,
+    required ScrollController scrollCtrl,
+    required List<String> columns,
+    required List<String> Function(QueryDocumentSnapshot d) rowBuilder,
+  }) {
+    return Card(
+      color: _lightGreen.withOpacity(0.3),
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.only(bottom: 32),
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Container(
+          height: 280,
+          decoration: BoxDecoration(
+            border: Border.all(color: _lightGreen),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: LayoutBuilder(
+            builder: (ctx, constraints) {
+              final tableWidth = constraints.maxWidth;
+              return Scrollbar(
+                controller: scrollCtrl,
+                thumbVisibility: true,
+                child: SingleChildScrollView(
+                  controller: scrollCtrl,
+                  scrollDirection: Axis.vertical,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minWidth: tableWidth),
+                      child: StreamBuilder<QuerySnapshot>(
+                        stream: stream,
+                        builder: (ctx, snap) {
+                          if (!snap.hasData) return const SizedBox();
+                          final docs = snap.data!.docs;
+                          return DataTable(
+                            headingRowColor:
+                                MaterialStateProperty.all(_lightGreen),
+                            dataRowColor:
+                                MaterialStateProperty.all(Colors.white),
+                            columns: columns
+                                .map((c) => DataColumn(
+                                    label: Text(c,
+                                        style: const TextStyle(
+                                            color: Colors.black))))
+                                .toList(),
+                            rows: docs.map((d) {
+                              final cells = rowBuilder(d);
+                              return DataRow(
+                                cells: cells
+                                    .map((c) => DataCell(Text(c,
+                                        style: const TextStyle(
+                                            color: Colors.black))))
+                                    .toList(),
+                              );
+                            }).toList(),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
 }
+
