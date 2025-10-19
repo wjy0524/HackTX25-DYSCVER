@@ -95,7 +95,7 @@ Firebase Admin key(JSON) is located in backend/.config_secret/serviceAccountKey
 ### Run Backend
 ```
 cd backend
-uvicorn main:app —-reload
+uvicorn main:app --reload
 ```
 
 ## 2. Frontend Server
@@ -125,12 +125,20 @@ python train_and_save.py
 
 # 📸 Main Screens
 
-to be updated
-
-
+<img width="1512" height="947" alt="Screenshot 2025-10-19 at 5 14 12 AM" src="https://github.com/user-attachments/assets/c23860cf-1f46-48ca-935d-88d241b9bcbd" />
+<img width="1512" height="947" alt="Screenshot 2025-10-19 at 5 14 24 AM" src="https://github.com/user-attachments/assets/1277120a-91db-4916-a59a-e885d576ae6f" />
+<img width="1512" height="947" alt="Screenshot 2025-10-19 at 5 14 54 AM" src="https://github.com/user-attachments/assets/c6234a21-be96-4c36-a0e6-1fee89782883" />
+<img width="1512" height="947" alt="Screenshot 2025-10-19 at 5 15 15 AM" src="https://github.com/user-attachments/assets/e2552c34-d7af-4d29-a45e-b5bb59f3c1c8" />
+<img width="1512" height="947" alt="Screenshot 2025-10-19 at 5 15 34 AM" src="https://github.com/user-attachments/assets/41035812-177a-422e-8af1-c86d4f4ca2fe" />
+<img width="1512" height="947" alt="Screenshot 2025-10-19 at 5 17 22 AM" src="https://github.com/user-attachments/assets/c2d411af-3df1-4ef0-9d5d-a98afbae3405" />
+<img width="1284" height="831" alt="KakaoTalk_Photo_2025-10-19-05-40-37" src="https://github.com/user-attachments/assets/209240e8-a4bd-4cc2-93e6-f6b38352044b" />
+<img width="1512" height="947" alt="Screenshot 2025-10-19 at 5 19 14 AM" src="https://github.com/user-attachments/assets/127a317d-e6e8-4b44-aa97-f70d39decbbc" />
+<img width="1705" height="983" alt="KakaoTalk_Image_2025-10-19-05-40-09_002" src="https://github.com/user-attachments/assets/4d31e5c8-e554-431e-82ce-53cea93eb394" />
+<img width="1512" height="947" alt="Screenshot 2025-10-19 at 5 20 48 AM" src="https://github.com/user-attachments/assets/bc75f5cc-87e9-4233-9bbe-9e1c3454c66d" />
+<img width="1512" height="947" alt="Screenshot 2025-10-19 at 5 20 14 AM" src="https://github.com/user-attachments/assets/50049388-3351-47bd-9b73-e7f4afb851da" />
+<img width="1512" height="947" alt="Screenshot 2025-10-19 at 5 20 03 AM" src="https://github.com/user-attachments/assets/6e25fbcc-7ee8-490b-8ebd-aa74b576ab90" />
 
 # 👥 Developers
-
 
 | Name | Photo | Role | Affiliation | GitHub |
 |------|------|------|-----------|--------|
