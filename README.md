@@ -109,13 +109,16 @@ flutter run -d chrome
 ```
 ## 3. ml_pipeline Server
 
-### Option: Run ml_pipeline 
+### Run ml_pipeline 
 ```
 cd ml_pipeline
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
+### Train the Dyslexia Model
+* After installing dependencies, train and export the Random Forest model:
+  python train_and_save.py
 
 
 # 📸 Main Screens
