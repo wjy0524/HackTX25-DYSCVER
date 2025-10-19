@@ -118,7 +118,9 @@ pip install -r requirements.txt
 ```
 ### Train the Dyslexia Model
 * After installing dependencies, train and export the Random Forest model:
-  python train_and_save.py
+```
+python train_and_save.py
+```
 
 
 # 📸 Main Screens
