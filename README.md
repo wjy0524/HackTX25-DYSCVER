@@ -44,7 +44,7 @@ While Dystrace does not directly diagnose dyslexia, it builds a comprehensive da
   - Flutter Web  
   - `flutter_map`, OpenStreetMap  
   - `firebase_auth`, `cloud_firestore`  
-  - `flutter_widget_from_html_core` (리치 텍스트)
+  - `flutter_widget_from_html_core` (rich text)
 
 - **Backend**  
   - FastAPI + Uvicorn  
