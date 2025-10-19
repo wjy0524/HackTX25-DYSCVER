@@ -12,7 +12,8 @@ class DyslexiaResultPage extends StatefulWidget {
   State<DyslexiaResultPage> createState() => _DyslexiaResultPageState();
 }
 
-class _DyslexiaResultPageState extends State<DyslexiaResultPage> {
+class _DyslexiaResultPageState extends State<DyslexiaResultPage>
+    with SingleTickerProviderStateMixin {
   double? probability;
   String riskLevel = "";
   bool isLoading = true;
@@ -29,13 +30,12 @@ class _DyslexiaResultPageState extends State<DyslexiaResultPage> {
       final uid = FirebaseAuth.instance.currentUser!.uid;
       final userDoc = FirebaseFirestore.instance.collection('users').doc(uid);
 
-      // Fetch reading and comprehension data
+      // Fetch latest results
       final readingSnap = await userDoc
           .collection('reading_results')
           .orderBy('timestamp', descending: true)
           .limit(3)
           .get();
-
       final compSnap = await userDoc
           .collection('comprehension_results')
           .orderBy('timestamp', descending: true)
@@ -50,24 +50,19 @@ class _DyslexiaResultPageState extends State<DyslexiaResultPage> {
         return;
       }
 
-      // Calculate averages
-      double totalAccuracy = 0;
-      int totalWords = 0;
-      int totalDuration = 0;
-      int totalCorrect = 0;
-      int totalQuestions = 0;
+      double totalAccuracy = 0, totalWords = 0, totalDuration = 0;
+      int totalCorrect = 0, totalQuestions = 0;
 
       for (var doc in readingSnap.docs) {
-        final data = doc.data();
-        totalAccuracy += (data['accuracy'] as num).toDouble();
-        totalWords += (data['words_read'] as num).toInt();
-        totalDuration += (data['duration_seconds'] as num).toInt();
+        final d = doc.data();
+        totalAccuracy += (d['accuracy'] as num).toDouble();
+        totalWords += (d['words_read'] as num).toDouble();
+        totalDuration += (d['duration_seconds'] as num).toDouble();
       }
-
       for (var doc in compSnap.docs) {
-        final data = doc.data();
-        totalCorrect += (data['correct_answers'] as num).toInt();
-        totalQuestions += (data['total_questions'] as num).toInt();
+        final d = doc.data();
+        totalCorrect += (d['correct_answers'] as num).toInt();
+        totalQuestions += (d['total_questions'] as num).toInt();
       }
 
       final avgAccuracy = totalAccuracy / readingSnap.docs.length;
@@ -75,7 +70,6 @@ class _DyslexiaResultPageState extends State<DyslexiaResultPage> {
       final avgComprehensionRate =
           totalQuestions > 0 ? totalCorrect / totalQuestions : 0;
 
-      // Send to backend for prediction
       final resp = await http.post(
         Uri.parse('http://localhost:8000/predict_dyslexia'),
         headers: {'Content-Type': 'application/json'},
@@ -118,77 +112,132 @@ class _DyslexiaResultPageState extends State<DyslexiaResultPage> {
     }
   }
 
+  IconData _getRiskIcon() {
+    switch (riskLevel) {
+      case "High Risk":
+        return Icons.warning_amber_rounded;
+      case "Moderate Risk":
+        return Icons.analytics_rounded;
+      default:
+        return Icons.check_circle_rounded;
+    }
+  }
+
+  Color _getRiskColor() {
+    switch (riskLevel) {
+      case "High Risk":
+        return Colors.redAccent;
+      case "Moderate Risk":
+        return Colors.orangeAccent;
+      default:
+        return Colors.green;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    const Color bgColor = Color(0xFFE8F5E9);
-    const Color mainColor = Color(0xFF81C784);
+    final Color bgColor = const Color(0xFFF1F8E9);
+    final Color mainColor = const Color(0xFF66BB6A);
 
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: mainColor,
         title: const Text("Dyslexia Evaluation Result"),
         centerTitle: true,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF81C784), Color(0xFF4CAF50)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
       ),
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: isLoading
               ? const CircularProgressIndicator()
               : errorMessage.isNotEmpty
-                  ? Text(errorMessage, style: const TextStyle(color: Colors.red))
-                  : Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.analytics,
-                            size: 80, color: Color(0xFF4CAF50)),
-                        const SizedBox(height: 24),
-                        const Text(
-                          "Predicted Dyslexia Probability",
-                          style: TextStyle(
-                              fontSize: 20, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          "${(probability! * 100).toStringAsFixed(1)}%",
-                          style: TextStyle(
-                            fontSize: 36,
-                            fontWeight: FontWeight.bold,
-                            color: riskLevel == "High Risk"
-                                ? Colors.redAccent
-                                : (riskLevel == "Moderate Risk"
-                                    ? Colors.orangeAccent
-                                    : Colors.green),
+                  ? Text(errorMessage,
+                      style:
+                          const TextStyle(color: Colors.red, fontSize: 16.0))
+                  : AnimatedContainer(
+                      duration: const Duration(milliseconds: 600),
+                      curve: Curves.easeOut,
+                      padding: const EdgeInsets.all(32.0),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 12,
+                            offset: const Offset(0, 6),
                           ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          riskLevel,
-                          style: const TextStyle(
-                              fontSize: 22, fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(height: 40),
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const DyslexiaInfoPage()),
-                            );
-                          },
-                          icon: const Icon(Icons.arrow_forward),
-                          label: const Text("View Dyslexia Resources"),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: mainColor,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 16, horizontal: 24),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(_getRiskIcon(),
+                              size: 90, color: _getRiskColor()),
+                          const SizedBox(height: 24),
+                          const Text(
+                            "Predicted Dyslexia Probability",
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
                             ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 14),
+                          Text(
+                            "${(probability! * 100).toStringAsFixed(1)}%",
+                            style: TextStyle(
+                              fontSize: 44,
+                              fontWeight: FontWeight.bold,
+                              color: _getRiskColor(),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            riskLevel,
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w700,
+                              color: _getRiskColor(),
+                            ),
+                          ),
+                          const SizedBox(height: 40),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const DyslexiaInfoPage()),
+                              );
+                            },
+                            icon: const Icon(Icons.arrow_forward_ios),
+                            label: const Text(
+                              "View Dyslexia Resources",
+                              style: TextStyle(fontSize: 18),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 16, horizontal: 28),
+                              backgroundColor: mainColor,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              shadowColor: mainColor.withOpacity(0.4),
+                              elevation: 4,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
         ),
       ),

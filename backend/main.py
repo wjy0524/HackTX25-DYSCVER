@@ -190,27 +190,65 @@ Do not include explanations, markdown, or additional text.
 
 
 # ----------------------------- DYSLEXIA PREDICTION -----------------------------
-
-class DyslexiaRequest(BaseModel):
-    words_read: int
-    duration_seconds: int
-    accuracy: float
-    comprehension_correct: int
-
-
 @app.post("/predict_dyslexia")
-def predict_dyslexia(req: DyslexiaRequest):
+def predict_dyslexia(data: dict):
+    wpm = data["wpm"]
+    accuracy = data["accuracy"]
+    comprehension_rate = data["comprehension_rate"]
+    
+    print(f"Received → wpm={wpm:.1f}, accuracy={accuracy:.1f}, comp_rate={comprehension_rate:.2f}")
+
+    X = [[wpm, accuracy, comprehension_rate]]
+    model = joblib.load("../ml_pipeline/best_dyslexia_rf.joblib")
+    prob = model.predict_proba(X)[0][1]  # Probability of dyslexia
+
+    return {"probability": float(prob)}
+
+
+# ----------------------------- FINAL EVALUATION -----------------------------
+
+@app.post("/final-evaluate")
+async def final_evaluate(
+    expected: str = Form(...),
+    recognized: str = Form(...),
+    duration_seconds: int = Form(...),
+    comprehension_correct: int = Form(...),
+):
     """
-    Predict dyslexia risk level based on reading and comprehension metrics.
+    Combine reading + comprehension results to compute dyslexia probability.
+    Called only after both stages of the test are finished.
     """
-    # Derived features: words per minute (WPM) and comprehension rate
-    wpm = req.words_read / (req.duration_seconds / 60)
-    comprehension_rate = req.comprehension_correct / 2  # assuming 2 questions per test
+    # 1️⃣ Compute reading accuracy
+    accuracy = lev.ratio(expected.strip(), recognized.strip()) * 100
+    wpm = len(recognized.split()) / (duration_seconds / 60)
+    comprehension_rate = comprehension_correct / 2  # 2 questions per test
 
-    # Model input
-    X_new = [[wpm, req.accuracy, comprehension_rate]]
+    # 2️⃣ Run the ML model
+    X_new = [[wpm, accuracy, comprehension_rate]]
+    prob = float(dyslexia_model.predict_proba(X_new)[0, 1])
+    prob = max(0, min(prob, 1))
 
-    # Predict risk (0 = low, 1 = high)
-    risk_label = dyslexia_model.predict(X_new)[0]
+    # 3️⃣ Interpret risk level
+    if prob < 0.4:
+        level = "Low"
+    elif prob < 0.7:
+        level = "Moderate"
+    else:
+        level = "High"
 
-    return {"dyslexia_risk": int(risk_label)}
+    # 4️⃣ Print to terminal
+    print("──────────── FINAL EVALUATION ────────────")
+    print(f"✅ Accuracy: {accuracy:.1f}%")
+    print(f"⏱️  Duration: {duration_seconds}s")
+    print(f"🧩 Comprehension: {comprehension_correct}/2")
+    print(f"📊 Predicted Dyslexia Probability: {prob:.3f} ({level} Risk)")
+    print("──────────────────────────────────────────")
+
+    # 5️⃣ Return result to frontend
+    return {
+        "accuracy": round(accuracy, 2),
+        "duration_seconds": duration_seconds,
+        "comprehension_correct": comprehension_correct,
+        "dyslexia_probability": round(prob, 3),
+        "risk_level": level
+    }
