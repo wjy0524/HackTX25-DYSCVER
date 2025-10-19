@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dyslexia_info_page.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class DyslexiaResultPage extends StatefulWidget {
   const DyslexiaResultPage({Key? key}) : super(key: key);
@@ -12,8 +13,7 @@ class DyslexiaResultPage extends StatefulWidget {
   State<DyslexiaResultPage> createState() => _DyslexiaResultPageState();
 }
 
-class _DyslexiaResultPageState extends State<DyslexiaResultPage>
-    with SingleTickerProviderStateMixin {
+class _DyslexiaResultPageState extends State<DyslexiaResultPage> {
   double? probability;
   String riskLevel = "";
   bool isLoading = true;
@@ -30,7 +30,7 @@ class _DyslexiaResultPageState extends State<DyslexiaResultPage>
       final uid = FirebaseAuth.instance.currentUser!.uid;
       final userDoc = FirebaseFirestore.instance.collection('users').doc(uid);
 
-      // Fetch latest results
+      // Fetch reading + comprehension results
       final readingSnap = await userDoc
           .collection('reading_results')
           .orderBy('timestamp', descending: true)
@@ -59,6 +59,7 @@ class _DyslexiaResultPageState extends State<DyslexiaResultPage>
         totalWords += (d['words_read'] as num).toDouble();
         totalDuration += (d['duration_seconds'] as num).toDouble();
       }
+
       for (var doc in compSnap.docs) {
         final d = doc.data();
         totalCorrect += (d['correct_answers'] as num).toInt();
@@ -136,13 +137,12 @@ class _DyslexiaResultPageState extends State<DyslexiaResultPage>
 
   @override
   Widget build(BuildContext context) {
-    final Color bgColor = const Color(0xFFF1F8E9);
-    final Color mainColor = const Color(0xFF66BB6A);
+    const Color bgColor = Color(0xFFF1F8E9);
+    const Color mainColor = Color(0xFF66BB6A);
 
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        title: const Text("Dyslexia Evaluation Result"),
         centerTitle: true,
         flexibleSpace: Container(
           decoration: const BoxDecoration(
@@ -153,6 +153,15 @@ class _DyslexiaResultPageState extends State<DyslexiaResultPage>
             ),
           ),
         ),
+        title: Text(
+          "Dyslexia Evaluation Result",
+          style: GoogleFonts.montserrat(
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.2,
+            color: Colors.white,
+          ),
+        ),
       ),
       body: Center(
         child: Padding(
@@ -161,8 +170,7 @@ class _DyslexiaResultPageState extends State<DyslexiaResultPage>
               ? const CircularProgressIndicator()
               : errorMessage.isNotEmpty
                   ? Text(errorMessage,
-                      style:
-                          const TextStyle(color: Colors.red, fontSize: 16.0))
+                      style: const TextStyle(color: Colors.red, fontSize: 16))
                   : AnimatedContainer(
                       duration: const Duration(milliseconds: 600),
                       curve: Curves.easeOut,
@@ -244,3 +252,4 @@ class _DyslexiaResultPageState extends State<DyslexiaResultPage>
     );
   }
 }
+
