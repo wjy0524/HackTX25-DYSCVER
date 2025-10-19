@@ -1,9 +1,7 @@
-// web/recorder.js
-
 let mediaRecorder;
 let chunks = [];
 
-// 녹음 시작 (Promise를 반환하도록 수정)
+// Start recording (returns a Promise)
 async function startMicRecording() {
   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
   mediaRecorder = new MediaRecorder(stream);
@@ -14,18 +12,18 @@ async function startMicRecording() {
   mediaRecorder.start();
 }
 
-// 녹음 중지 후 base64 문자열을 resolve
+// Stop recording and resolve with base64 string
 function stopMicRecording() {
   return new Promise((resolve, reject) => {
     if (!mediaRecorder) {
-      reject("녹음이 시작되지 않았습니다");
+      reject("Recording has not been started.");
       return;
     }
     mediaRecorder.onstop = async () => {
       const blob = new Blob(chunks, { type: "audio/webm; codecs=opus" });
       const reader = new FileReader();
       reader.onloadend = () => {
-        // dataURL 전체에서 앞부분 “data:…;base64,” 잘라내고 base64만
+        // Remove the "data:...;base64," prefix and keep only the base64 string
         const base64 = reader.result.split(",")[1];
         resolve(base64);
       };
@@ -36,6 +34,7 @@ function stopMicRecording() {
   });
 }
 
-// Flutter에서 JS interop으로 호출할 수 있도록 전역에 노출
+// Expose functions globally so Flutter can call them via JS interop
 window.startMicRecording = startMicRecording;
 window.stopMicRecording  = stopMicRecording;
+

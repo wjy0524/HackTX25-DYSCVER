@@ -1,5 +1,3 @@
-// lib/screens/signup_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'participant_info_page.dart';
@@ -54,7 +52,7 @@ class _SignupPageState extends State<SignupPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFE8F5E9),
       appBar: AppBar(
-        title: const Text('회원가입'),
+        title: const Text('Sign Up'),
         backgroundColor: const Color(0xFF81C784),
         elevation: 0,
       ),
@@ -77,7 +75,7 @@ class _SignupPageState extends State<SignupPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                'Create your account',
+                'Create Your Account',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -86,12 +84,12 @@ class _SignupPageState extends State<SignupPage> {
               ),
               const SizedBox(height: 8),
               const Text(
-                '이메일과 비밀번호를 입력해주세요',
+                'Please enter your email and password to sign up.',
                 style: TextStyle(fontSize: 14, color: Colors.black54),
               ),
               const SizedBox(height: 24),
 
-              // 이메일 입력
+              // Email Input
               TextField(
                 controller: _emailCtrl,
                 decoration: InputDecoration(
@@ -106,7 +104,7 @@ class _SignupPageState extends State<SignupPage> {
               ),
               const SizedBox(height: 16),
 
-              // 비밀번호 입력
+              // Password Input
               TextField(
                 controller: _passwordCtrl,
                 obscureText: true,
@@ -122,11 +120,14 @@ class _SignupPageState extends State<SignupPage> {
 
               if (_error != null) ...[
                 const SizedBox(height: 12),
-                Text(_error!, style: const TextStyle(color: Colors.red)),
+                Text(
+                  _error!,
+                  style: const TextStyle(color: Colors.red),
+                ),
               ],
               const SizedBox(height: 24),
 
-              // 회원가입 버튼
+              // Sign Up Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -150,7 +151,7 @@ class _SignupPageState extends State<SignupPage> {
                           ),
                         )
                       : const Text(
-                          '회원가입',
+                          'Sign Up',
                           style: TextStyle(fontSize: 18, color: Colors.white),
                         ),
                 ),

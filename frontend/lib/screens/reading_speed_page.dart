@@ -1,3 +1,5 @@
+// English UI version of ReadingSpeedPage
+
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -23,22 +25,25 @@ class WordMetrics {
   });
 
   static final zero = WordMetrics(
-    fixationCount: 0, avgFixationDuration: 0.0, regressionCount: 0,
+    fixationCount: 0,
+    avgFixationDuration: 0.0,
+    regressionCount: 0,
   );
 }
-// ② computeWordBasedMetrics 함수
+
+// Compute word-based gaze metrics
 WordMetrics computeWordBasedMetrics(
   List<Map<String, dynamic>> eyeData,
   List<Rect> wordRects,
 ) {
   if (eyeData.isEmpty || wordRects.isEmpty) return WordMetrics.zero;
 
-  int fixationCount    = 0;
-  int regressionCount  = 0;
-  double totalFixDur   = 0;
+  int fixationCount = 0;
+  int regressionCount = 0;
+  double totalFixDur = 0;
 
   int? prevBox;
-  int  prevTime = eyeData.first['t'] as int;
+  int prevTime = eyeData.first['t'] as int;
 
   for (final sample in eyeData) {
     final x = sample['x'] as double;
@@ -52,7 +57,7 @@ WordMetrics computeWordBasedMetrics(
     } else {
       if (prevBox != null) fixationCount++;
       if (prevBox != null && idx < prevBox) regressionCount++;
-      prevBox  = idx >= 0 ? idx : null;
+      prevBox = idx >= 0 ? idx : null;
       prevTime = t;
     }
   }
@@ -93,14 +98,12 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
 
   @override
   void initState() {
-    // Clean up any leftover indicators from previous sessions
     _removeAllGazeIndicators();
     resetWebGazer();
     super.initState();
     _fetchPassages();
   }
 
-  /// ① 지문 텍스트를 `<span class="word">…</span>` 로 감싸 줄 HTML 생성기
   String _buildHtmlFromText(String text) {
     final tokens = text.split(RegExp(r'\s+'));
     return tokens
@@ -116,36 +119,42 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
         body: jsonEncode({
           'age': widget.participantAge,
           'gender': widget.participantGender,
-          'native_language': 'korean',
+          'native_language': 'english',
         }),
       );
       if (resp.statusCode == 200) {
         final utf8Body = utf8.decode(resp.bodyBytes);
-        final data     = json.decode(utf8Body) as Map<String, dynamic>;
+        final data = json.decode(utf8Body) as Map<String, dynamic>;
         final raw = data['passages'];
         setState(() {
-          _passages = (raw as List).map((e) => e is Map && e.containsKey('text') ? e['text'] as String : e.toString()).toList();
+          _passages = (raw as List)
+            .map((e) {
+              if (e is Map && e.containsKey('title') && e.containsKey('content')) {
+              return e['content'] as String;
+            } else if (e is Map && e.containsKey('text')) {
+              return e['text'] as String;
+            } else {
+              return e.toString();
+            }
+          })
+          .toList();
           _currentIndex = 0;
           _hasRecorded = false;
         });
       } else {
-        _showErrorDialog('지문을 불러오지 못했습니다: ${resp.statusCode}');
+        _showErrorDialog('Failed to load passages: ${resp.statusCode}');
       }
     } catch (e) {
-      _showErrorDialog('지문 로드 중 오류 발생: $e');
+      _showErrorDialog('Error loading passages: $e');
     }
   }
 
   Future<void> _startRecording() async {
     try {
       resetWebGazer();
-      // ●— 여기서 단어 박스 좌표 갱신
       js_util.callMethod(js_util.globalThis, 'collectWordBoxes', []);
-      // 1) 카메라·시선 추적 켜기
       await startEyeTracking();
-      // 2) 캘리브레이션: 텍스트 박스 영역 위의 4×4 포인트 터치
       await _showCalibrationDialogOverTextBox();
-      // 3) 녹음 시작
       await startMicRecording();
 
       _stopwatch.reset();
@@ -162,35 +171,14 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
         return true;
       });
     } catch (e) {
-      _showErrorDialog('녹음 시작 실패: $e');
+      _showErrorDialog('Failed to start recording: $e');
     }
   }
 
-  // Add this method to completely remove all gaze indicators
   void _removeAllGazeIndicators() {
     js_util.callMethod(js_util.globalThis, 'eval', ['''
-      // Remove all existing gaze indicators
       document.querySelectorAll('#gazeIndicator').forEach(el => el.remove());
-      // Clear the window reference
       window._gazeIndicator = null;
-    ''']);
-  }
-
-  // Add this method to hide the gaze indicator
-  void _hideGazeIndicator() {
-    js_util.callMethod(js_util.globalThis, 'eval', ['''
-      if (window._gazeIndicator) {
-        window._gazeIndicator.style.display = 'none';
-      }
-    ''']);
-  }
-
-  // Add this method to show the gaze indicator (for debugging if needed)
-  void _showGazeIndicator() {
-    js_util.callMethod(js_util.globalThis, 'eval', ['''
-      if (window._gazeIndicator) {
-        window._gazeIndicator.style.display = 'block';
-      }
     ''']);
   }
 
@@ -204,19 +192,17 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
       final bytes = await stopMicRecording();
       final eyeData = await stopEyeTracking();
 
-       // 2) 단어 박스 좌표 가져오기
-      final wordRects    = await getWordBoxes();
-    // 3) 단어 기반 시선 메트릭 계산
-      final wordMetrics  = computeWordBasedMetrics(eyeData, wordRects);
+      final wordRects = await getWordBoxes();
+      final wordMetrics = computeWordBasedMetrics(eyeData, wordRects);
 
       await _sendToBackend(
         bytes,
         eyeData,
         wordMetrics: wordMetrics,
-        );
+      );
       setState(() => _hasRecorded = true);
     } catch (e) {
-      _showErrorDialog('녹음 종료 실패: $e');
+      _showErrorDialog('Failed to stop recording: $e');
     } finally {
       setState(() => _isUploading = false);
     }
@@ -225,17 +211,19 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
   Future<void> _sendToBackend(
     Uint8List audioBytes,
     List<dynamic> eyeData, {
-      required WordMetrics wordMetrics,
-    }) async {
+    required WordMetrics wordMetrics,
+  }) async {
     final uri = Uri.parse('http://localhost:8000/reading_test');
     final request = http.MultipartRequest('POST', uri)
       ..fields['expected'] = _passages[_currentIndex]
       ..fields['eye_data'] = jsonEncode(eyeData)
-      ..fields['fixation_count']      = wordMetrics.fixationCount.toString()
-      ..fields['avg_fixation_dur_ms'] = wordMetrics.avgFixationDuration.toStringAsFixed(0)
-      ..fields['regression_count']    = wordMetrics.regressionCount.toString()
+      ..fields['fixation_count'] = wordMetrics.fixationCount.toString()
+      ..fields['avg_fixation_dur_ms'] =
+          wordMetrics.avgFixationDuration.toStringAsFixed(0)
+      ..fields['regression_count'] = wordMetrics.regressionCount.toString()
       ..files.add(http.MultipartFile.fromBytes(
-        'audio', audioBytes,
+        'audio',
+        audioBytes,
         filename: 'recording.webm',
         contentType: MediaType('audio', 'webm'),
       ));
@@ -247,11 +235,6 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
       final accuracy = (result['accuracy'] as num).toDouble();
       final wordsRead = (result['words_read'] as num).toInt();
       final durationSeconds = (result['duration_seconds'] as num).toInt();
-      final fixationCount = (result['fixation_count'] as num).toInt();
-      final avgFixationDuration = (result['avg_fixation_duration'] as num).toDouble();
-      final regressionCount = (result['regression_count'] as num).toInt();
-      final cognitiveLoad = (result['cognitive_load'] as num).toDouble();
-      final fluencyScore = (result['fluency_score'] as num).toDouble();
 
       final uid = FirebaseAuth.instance.currentUser!.uid;
       await FirebaseFirestore.instance
@@ -262,11 +245,6 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
         'accuracy': accuracy,
         'words_read': wordsRead,
         'duration_seconds': durationSeconds,
-        'fixation_count': fixationCount,
-        'avg_fixation_duration': avgFixationDuration,
-        'regression_count': regressionCount,
-        'cognitive_load': cognitiveLoad,
-        'fluency_score': fluencyScore,
         'timestamp': FieldValue.serverTimestamp(),
       });
 
@@ -277,47 +255,47 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
   }
 
   void _showEyeResultDialog() {
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (_) => AlertDialog(
-      content: const Padding(
-        padding: EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-        child: Text(
-          '수고하셨습니다!\n\n다음 단계를 위해 아래 버튼을 눌러주세요.',
-          textAlign: TextAlign.center,
-        ),
-      ),
-      actionsPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      actions: [
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: _goToNextRound,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF9575CD),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
-              elevation: 0,
-            ),
-            child: Text(
-              _currentIndex < _passages.length - 1
-                ? '다음 지문 읽기'
-                : '이해도 테스트로 넘어가기',
-              style: const TextStyle(fontSize: 16),
-            ),
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        content: const Padding(
+          padding: EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+          child: Text(
+            'Great job!\n\nPlease tap the button below to continue.',
+            textAlign: TextAlign.center,
           ),
         ),
-      ],
-    ),
-  );
-}
+        actionsPadding:
+            const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _goToNextRound,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF9575CD),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                elevation: 0,
+              ),
+              child: Text(
+                _currentIndex < _passages.length - 1
+                    ? 'Read Next Passage'
+                    : 'Proceed to Comprehension Test',
+                style: const TextStyle(fontSize: 16),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   void _goToNextRound() {
-    // Completely remove all old red dots before moving to next passage
     _removeAllGazeIndicators();
     resetWebGazer();
 
@@ -329,18 +307,16 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
         _hasRecorded = false;
       });
     } else {
-      // 마지막 지문까지 다 읽었으면 → ComprehensionPage 로 이동
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (_) => ComprehensionPage(
             age: widget.participantAge,
             gender: widget.participantGender,
-            nativeLanguage: 'korean', // 필요에 따라 실제 언어값 전달
+            nativeLanguage: 'english',
           ),
         ),
       );
-
     }
   }
 
@@ -348,27 +324,28 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('오류'),
+        title: const Text('Error'),
         content: Text(message),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))
+        ],
       ),
     );
   }
-  // ① 텍스트 컨테이너에 붙일 키
-  final GlobalKey _textBoxKey = GlobalKey();
-  Future<void> _showCalibrationDialogOverTextBox() async {
-  // ① 텍스트 박스 위치/크기 계산
-    final renderBox = _textBoxKey.currentContext!.findRenderObject() as RenderBox;
-    final rect      = renderBox.localToGlobal(Offset.zero) & renderBox.size;
 
-  // ② 3x3 포인트 계산
+  final GlobalKey _textBoxKey = GlobalKey();
+
+  Future<void> _showCalibrationDialogOverTextBox() async {
+    final renderBox = _textBoxKey.currentContext!.findRenderObject() as RenderBox;
+    final rect = renderBox.localToGlobal(Offset.zero) & renderBox.size;
+
     const int gridSize = 3;
     final points = [
       for (int r = 0; r < gridSize; r++)
         for (int c = 0; c < gridSize; c++)
           Offset(
-            rect.left   + rect.width  * c / (gridSize - 1),
-            rect.top    + rect.height * r / (gridSize - 1),
+            rect.left + rect.width * c / (gridSize - 1),
+            rect.top + rect.height * r / (gridSize - 1),
           ),
     ];
 
@@ -380,21 +357,12 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
         builder: (ctx, setSt) {
           return Stack(
             children: [
-            // 반투명 배경
-              GestureDetector(
-                onTap: () {}, // 바깥 터치 막기
-                child: Container(color: Colors.black45),
-              ),
-
-            // 캘리 포인트
+              GestureDetector(onTap: () {}, child: Container(color: Colors.black45)),
               Positioned(
                 left: points[idx].dx - 24,
-                top:  points[idx].dy - 24,
+                top: points[idx].dy - 24,
                 child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
                   onTap: () {
-                    // (버퍼 수집은 window.startEyeTracking() 내부에서 이미 실행됩니다)
-                  // 다음 포인트 혹은 종료
                     if (idx < points.length - 1) {
                       setSt(() => idx++);
                     } else {
@@ -402,24 +370,24 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
                     }
                   },
                   child: Container(
-                    width: 48, height: 48,
+                    width: 48,
+                    height: 48,
                     decoration: BoxDecoration(
                       color: Colors.blueAccent.withOpacity(0.9),
                       shape: BoxShape.circle,
                     ),
                     alignment: Alignment.center,
-                    child: const Text('●', style: TextStyle(color: Colors.white, fontSize: 24)),
+                    child: const Text('●',
+                        style: TextStyle(color: Colors.white, fontSize: 24)),
                   ),
                 ),
               ),
-
-            // 안내 텍스트
               Positioned(
                 left: rect.left,
-                top:  rect.bottom + 8,
+                top: rect.bottom + 8,
                 width: rect.width,
                 child: Text(
-                  '점(●)을 보고 클릭해 주세요 (${idx+1}/${points.length})',
+                  'Look at and click the dot (${idx + 1}/${points.length})',
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: Colors.white, fontSize: 16),
                 ),
@@ -430,32 +398,29 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
       ),
     );
   }
-  // 캘리브레이션이 끝나면 stopEyeTracking() 은 녹음 종료 시점에 호출하세요.
-  
-  //도움말 위젯 띄우는 method
+
   void _showHelpDialog() {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('도움말'),
+        title: const Text('Help'),
         content: const Text(
-          "1. 화면 준비\n"
-          "화면에 나타나는 하얀색에 파란색 테두리의 점들을 나타나는 순서대로 눌러 눈 위치를 맞춰주세요.\n"
-          "작은 빨간색 점들이 눈을 따라갈텐데 빨간색 점들이 하얀색 점에 모여졌을때 하얀색 점을 눌러주셔야 보다 정확한 결과를 낼 수 있어요.\n\n"
-          "2. 지문 읽기 테스트\n"
-          "'지문 읽기 테스트'는 3번에 걸쳐서 진행됩니다.\n"
-          "'start' 버튼을 눌러 지문을 소리 내어 읽습니다. 읽는 동안 시간이 측정되며, 멈추려면 'stop' 버튼을 눌러주세요.\n\n"
-          "3. 이해도 확인 테스트\n"
-          "'지문 읽기 테스트'가 끝나면 '이해도 확인 테스트'가 진행될겁니다.\n"
-          "'이해도 확인 테스트'는 지문을 읽은 후 이해도를 확인하기 위한 간단한 선택형 문제입니다.\n"
-          "세 지문이 주어지며, 각 지문당 2개의 객관식 독해문제로 구성됩니다.\n\n"
-          '4. 결과 보기\n'
-          "모든 단계를 마치면 '기록 보기'에서 지난 결과를 차트와 표로 확인할 수 있어요.\n",
+          "1. Calibration\n"
+          "Tap each white-blue circle in order to calibrate your gaze.\n"
+          "When the red dot aligns with the white dot, tap it to record an accurate gaze position.\n\n"
+          "2. Reading Test\n"
+          "The reading test consists of 3 passages.\n"
+          "Press 'Start' to begin reading aloud. Press 'Stop' to end.\n\n"
+          "3. Comprehension Test\n"
+          "After reading all passages, you will take a simple multiple-choice comprehension test.\n"
+          "Each passage includes two comprehension questions.\n\n"
+          "4. View Results\n"
+          "Once all steps are completed, you can view your past results as charts and tables in the 'History' page.",
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('닫기'),
+            child: const Text('Close'),
           ),
         ],
       ),
@@ -465,27 +430,24 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
   @override
   Widget build(BuildContext context) {
     if (_passages.isEmpty) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     final currentText = _passages[_currentIndex];
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('지문 ${_currentIndex + 1}/${_passages.length}'),
+        title: Text('Passage ${_currentIndex + 1}/${_passages.length}'),
         backgroundColor: const Color(0xFF81C784),
         actions: [
           IconButton(
             icon: const Icon(Icons.help_outline),
-            tooltip: '도움말',
+            tooltip: 'Help',
             onPressed: _showHelpDialog,
           ),
-          // 기록 보기 버튼
           IconButton(
             icon: const Icon(Icons.history),
-            tooltip: '기록 보기',
+            tooltip: 'View History',
             onPressed: () {
               Navigator.push(
                 context,
@@ -502,7 +464,7 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
           children: [
             Expanded(
               child: Container(
-                key: _textBoxKey,         // ← 여기에 키 추가
+                key: _textBoxKey,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -518,32 +480,26 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
                 ),
                 child: SingleChildScrollView(
                   child: HtmlWidget(
-                // 1) 공백(\s+)으로 토큰화 → 조사 붙은 단어 단위 확보
-                  _buildHtmlFromText(currentText),
-        // 2) span-word 요소에 CSS 추가 (선택)
-                  customStylesBuilder: (element) {
-                    if (element.classes.contains('word')) {
-                      return {
-                        'display': 'inline-block',
-                        'padding': '0 2px',    // 단어 앞뒤 살짝 여백
-                      };
-                    }
-                    return null;
-                  },
-        // 3) 기본 텍스트 스타일 조정
-                  textStyle: const TextStyle(
-                    fontSize: 50,
-                    height: 3,
-                    letterSpacing: 5,
-                    color: Colors.black87,
+                    _buildHtmlFromText(currentText),
+                    customStylesBuilder: (element) {
+                      if (element.classes.contains('word')) {
+                        return {'display': 'inline-block', 'padding': '0 2px'};
+                      }
+                      return null;
+                    },
+                    textStyle: const TextStyle(
+                      fontSize: 40,
+                      height: 2,
+                      letterSpacing: 5,
+                      color: Colors.black87,
+                    ),
                   ),
                 ),
-              ),
               ),
             ),
             const SizedBox(height: 24),
             Text(
-              '경과 시간: $_elapsedSeconds초',
+              'Elapsed Time: $_elapsedSeconds s',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 16),
             ),
@@ -588,12 +544,10 @@ class _ReadingSpeedPageState extends State<ReadingSpeedPage> {
                         ),
                       ),
                       child: const Text('Stop'),
-                      
                     ),
                   ),
                 ],
               ),
-            
           ],
         ),
       ),

@@ -1,5 +1,3 @@
-// lib/screens/statistics_page.dart
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -10,7 +8,7 @@ import 'dyslexia_info_page.dart';
 class StatisticsPage extends StatelessWidget {
   const StatisticsPage({Key? key}) : super(key: key);
 
-  /// ■ 범례용 dot+label 위젯
+  /// Legend dot + label widget
   Widget _dotLabel(Color color, String text) {
     return Row(
       children: [
@@ -28,15 +26,15 @@ class StatisticsPage extends StatelessWidget {
     );
   }
 
-  /// ■ 범례 전체 Row
+  /// Legend row
   Widget legend(Color myColor, Color avgColor) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          _dotLabel(myColor, '나의 최신 결과'),
+          _dotLabel(myColor, 'My Latest Result'),
           const SizedBox(width: 16),
-          _dotLabel(avgColor, '다른 참가자 평균'),
+          _dotLabel(avgColor, 'Average of Other Participants'),
         ],
       ),
     );
@@ -47,18 +45,17 @@ class StatisticsPage extends StatelessWidget {
     final theme = Theme.of(context);
     final uid = FirebaseAuth.instance.currentUser!.uid;
 
-    // 차트 색상: 나의 최신은 주 색상, 평균은 반투명으로
-    final myColor = const Color.fromARGB(255, 219, 125, 3);    // 테마 메인 그린
-    final avgColor = const Color(0xFFC8E6C9);   // 연두 라이트
+    final myColor = const Color.fromARGB(255, 219, 125, 3);
+    final avgColor = const Color(0xFFC8E6C9);
     final backGroundColor = const Color(0xFF81C784);
 
-    // 개인 결과 스트림
     final readingStream = FirebaseFirestore.instance
         .collection('users')
         .doc(uid)
         .collection('reading_results')
         .orderBy('timestamp')
         .snapshots();
+
     final compStream = FirebaseFirestore.instance
         .collection('users')
         .doc(uid)
@@ -66,24 +63,24 @@ class StatisticsPage extends StatelessWidget {
         .orderBy('timestamp')
         .snapshots();
 
-    // 전체 참가자 평균 계산용 스트림
     final allReadingStream =
         FirebaseFirestore.instance.collectionGroup('reading_results').snapshots();
+
     final allCompStream =
         FirebaseFirestore.instance.collectionGroup('comprehension_results').snapshots();
 
     return Scaffold(
       backgroundColor: theme.colorScheme.background,
       appBar: AppBar(
-        title: const Text('통계 보기'),
+        title: const Text('Statistics'),
         backgroundColor: backGroundColor,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // ─── 읽기 통계 ─────────────────────────────
+          // ─── Reading Statistics ─────────────────────────────
           Text(
-            '📊 읽기 통계',
+            '📊 Reading Statistics',
             style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
           legend(myColor, avgColor),
@@ -123,7 +120,7 @@ class StatisticsPage extends StatelessWidget {
                       }
                       final myDocs = meSnap.data!.docs;
                       if (myDocs.isEmpty) {
-                        return const Text('내 읽기 기록이 없습니다.');
+                        return const Text('No reading record found.');
                       }
                       final lastAcc = (myDocs.last['accuracy'] as num).toDouble();
                       final mid = (otherAvgs.length / 2).floor();
@@ -143,9 +140,9 @@ class StatisticsPage extends StatelessWidget {
 
           const SizedBox(height: 24),
 
-          // ─── 이해도 통계 ───────────────────────────
+          // ─── Comprehension Statistics ───────────────────────────
           Text(
-            '📈 이해도 통계',
+            '📈 Comprehension Statistics',
             style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
           legend(myColor, avgColor),
@@ -188,7 +185,7 @@ class StatisticsPage extends StatelessWidget {
                       }
                       final myDocs = meSnap.data!.docs;
                       if (myDocs.isEmpty) {
-                        return const Text('내 이해도 기록이 없습니다.');
+                        return const Text('No comprehension record found.');
                       }
                       final data = myDocs.last.data()! as Map<String, dynamic>;
                       final tot = (data['total_questions'] as num).toDouble();
@@ -211,7 +208,7 @@ class StatisticsPage extends StatelessWidget {
 
           const SizedBox(height: 32),
 
-          // ─── 하단 버튼 (너비 조정, 가운데 정렬) ───────────────────────────
+          // ─── Bottom Buttons ───────────────────────────
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 24),
             child: Row(
@@ -227,12 +224,12 @@ class StatisticsPage extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: backGroundColor,
                     foregroundColor: Colors.white,
-                    minimumSize: const Size(400, 48),  // 200px 너비
+                    minimumSize: const Size(400, 48),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(24),
                     ),
                   ),
-                  child: const Text('메인 페이지로 돌아가기'),
+                  child: const Text('Back to Main Menu'),
                 ),
                 const SizedBox(width: 40),
                 ElevatedButton(
@@ -245,18 +242,16 @@ class StatisticsPage extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: backGroundColor,
                     foregroundColor: Colors.white,
-                    minimumSize: const Size(400, 48),  // 200px 너비
+                    minimumSize: const Size(400, 48),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(24),
                     ),
                   ),
-                  child: const Text('난독증에 대한 정보'),
+                  child: const Text('Learn About Dyslexia'),
                 ),
               ],
             ),
           ),
-
-          const SizedBox(height: 24),
         ],
       ),
     );

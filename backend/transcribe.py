@@ -10,7 +10,7 @@ asr_pipeline = pipeline(
     chunk_length_s=30,  # 긴 파일은 30초 단위로 자름
 )
 
-def transcribe_korean_audio(file_path: str) -> str:
+def transcribe_audio(file_path: str) -> str:
     """
     file_path: 전사할 오디오 파일 경로
     반환값: 전사된 전체 텍스트

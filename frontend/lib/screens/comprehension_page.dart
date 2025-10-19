@@ -1,5 +1,3 @@
-// lib/screens/comprehension_page.dart
-
 import 'package:flutter/material.dart';
 import '../model/comprehension.dart';
 import '../services/comprehension_service.dart';
@@ -70,7 +68,7 @@ class _ComprehensionPageState extends State<ComprehensionPage> {
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('결과 저장에 실패했습니다: $e')),
+        SnackBar(content: Text('Failed to save results: $e')),
       );
       return;
     }
@@ -79,8 +77,8 @@ class _ComprehensionPageState extends State<ComprehensionPage> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: const Text('이해도 테스트 결과'),
-        content: Text('총 $total문제 중 $correct문제 정답'),
+        title: const Text('Comprehension Test Results'),
+        content: Text('You answered $correct out of $total questions correctly.'),
         actions: [
           TextButton(
             onPressed: () {
@@ -89,7 +87,7 @@ class _ComprehensionPageState extends State<ComprehensionPage> {
                 MaterialPageRoute(builder: (_) => const HistoryPage()),
               );
             },
-            child: const Text('결과 보기'),
+            child: const Text('View Results'),
           ),
         ],
       ),
@@ -98,16 +96,14 @@ class _ComprehensionPageState extends State<ComprehensionPage> {
 
   @override
   Widget build(BuildContext context) {
-    // 직접 지정할 색상
-    const appBarColor     = Color(0xFF81C784);  // 상단 헤더
-    const passageBgColor  = Color(0xFFE8F5E9);  // 지문 배경
-    const buttonColor     = Color(0xFF1ABC9C);  // '다음' 버튼 (Start 버튼 색)
+    const appBarColor = Color(0xFF81C784);
+    const passageBgColor = Color(0xFFE8F5E9);
+    const buttonColor = Color(0xFF1ABC9C);
     const buttonTextColor = Colors.white;
-    const textColor       = Colors.black87;
+    const textColor = Colors.black87;
 
     final tt = Theme.of(context).textTheme;
 
-    // 텍스트 스타일
     final passageStyle = tt.bodyLarge?.copyWith(
       fontSize: 20,
       height: 1.8,
@@ -134,7 +130,7 @@ class _ComprehensionPageState extends State<ComprehensionPage> {
         if (snap.hasError || snap.data == null) {
           return Scaffold(
             backgroundColor: passageBgColor,
-            body: Center(child: Text('오류: ${snap.error}')),
+            body: Center(child: Text('Error: ${snap.error}')),
           );
         }
 
@@ -153,7 +149,7 @@ class _ComprehensionPageState extends State<ComprehensionPage> {
             foregroundColor: buttonTextColor,
             elevation: 0,
             title: Text(
-              '이해도 지문 ${_current + 1}/${items.length}',
+              'Comprehension ${_current + 1}/${items.length}',
               style: tt.titleLarge?.copyWith(color: buttonTextColor),
             ),
             leading: IconButton(
@@ -165,7 +161,7 @@ class _ComprehensionPageState extends State<ComprehensionPage> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Column(
               children: [
-                // 지문 카드 (흰배경 유지)
+                // Passage Card
                 Card(
                   color: Colors.white,
                   elevation: 2,
@@ -181,7 +177,7 @@ class _ComprehensionPageState extends State<ComprehensionPage> {
                 ),
                 const SizedBox(height: 20),
 
-                // 질문 & 옵션
+                // Questions
                 Expanded(
                   child: ListView.separated(
                     itemCount: item.questions.length,
@@ -199,13 +195,15 @@ class _ComprehensionPageState extends State<ComprehensionPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('${qi + 1}. ${q.question}', style: questionStyle),
+                              Text('${qi + 1}. ${q.question}',
+                                  style: questionStyle),
                               const SizedBox(height: 8),
                               ...List.generate(q.options.length, (oi) {
                                 return RadioListTile<int>(
                                   value: oi,
                                   groupValue: _selected[_current][qi],
-                                  title: Text(q.options[oi], style: optionStyle),
+                                  title:
+                                      Text(q.options[oi], style: optionStyle),
                                   contentPadding: EdgeInsets.zero,
                                   activeColor: buttonColor,
                                   onChanged: (v) {
@@ -222,7 +220,6 @@ class _ComprehensionPageState extends State<ComprehensionPage> {
                 ),
 
                 const SizedBox(height: 12),
-                // 다음/제출 버튼
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -238,7 +235,7 @@ class _ComprehensionPageState extends State<ComprehensionPage> {
                         ? null
                         : () => _next(items),
                     child: Text(
-                      _current + 1 < items.length ? '다음' : '제출',
+                      _current + 1 < items.length ? 'Next' : 'Submit',
                       style: const TextStyle(fontSize: 16),
                     ),
                   ),
@@ -251,3 +248,4 @@ class _ComprehensionPageState extends State<ComprehensionPage> {
     );
   }
 }
+

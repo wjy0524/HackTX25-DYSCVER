@@ -1,12 +1,10 @@
-// lib/screens/history_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../widgets/accuracy_chart.dart';                    // 읽기용 차트
-import '../widgets/accuracy_chart.dart' as comp_chart;     // 이해도용 차트
-import 'statistics_page.dart';                             // 통계 페이지
+import '../widgets/accuracy_chart.dart';
+import '../widgets/accuracy_chart.dart' as comp_chart;
+import 'statistics_page.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({Key? key}) : super(key: key);
@@ -25,22 +23,20 @@ class _HistoryPageState extends State<HistoryPage>
   late final ScrollController _readingScrollCtrl;
   late final ScrollController _compScrollCtrl;
 
-  // 차트 데이터 캐시
   List<FlSpot>? _cachedReadingSpots;
   List<FlSpot>? _cachedCompSpots;
   bool _readingDataLoaded = false;
   bool _compDataLoaded = false;
 
-  // 프로젝트 색상
-  static const Color _mainGreen  = Color(0xFF81C784);
+  static const Color _mainGreen = Color(0xFF81C784);
   static const Color _lightGreen = Color(0xFFC8E6C9);
-  static const Color _darkGreen  = Color(0xFF388E3C);
+  static const Color _darkGreen = Color(0xFF388E3C);
 
   @override
   void initState() {
     super.initState();
     _readingScrollCtrl = ScrollController();
-    _compScrollCtrl    = ScrollController();
+    _compScrollCtrl = ScrollController();
     final uid = FirebaseAuth.instance.currentUser!.uid;
     _readingStream = FirebaseFirestore.instance
         .collection('users')
@@ -71,14 +67,12 @@ class _HistoryPageState extends State<HistoryPage>
           final docs = snap.data!.docs;
           if (docs.isEmpty) {
             _readingDataLoaded = true;
-            return const Text('읽기 기록이 없습니다.',
+            return const Text('No reading records found.',
                 style: TextStyle(color: Colors.black));
           }
           if (!_readingDataLoaded || _cachedReadingSpots == null) {
-            _cachedReadingSpots = docs.asMap().entries.map((e) =>
-              FlSpot(e.key.toDouble(),
-                     (e.value['accuracy'] as num).toDouble()))
-              .toList();
+            _cachedReadingSpots = docs.asMap().entries.map((e) => FlSpot(
+                e.key.toDouble(), (e.value['accuracy'] as num).toDouble())).toList();
             _readingDataLoaded = true;
           }
           return SizedBox(
@@ -105,15 +99,15 @@ class _HistoryPageState extends State<HistoryPage>
           final docs = snap.data!.docs;
           if (docs.isEmpty) {
             _compDataLoaded = true;
-            return const Text('이해도 기록이 없습니다.',
+            return const Text('No comprehension records found.',
                 style: TextStyle(color: Colors.black));
           }
           if (!_compDataLoaded || _cachedCompSpots == null) {
             _cachedCompSpots = docs.asMap().entries.map((e) {
               final data = e.value.data() as Map<String, dynamic>;
-              final tot  = (data['total_questions']  as num).toDouble();
+              final tot = (data['total_questions'] as num).toDouble();
               final corr = (data['correct_answers'] as num).toDouble();
-              final pct  = tot > 0 ? (corr / tot * 100) : 0.0;
+              final pct = tot > 0 ? (corr / tot * 100) : 0.0;
               return FlSpot(e.key.toDouble(), pct);
             }).toList();
             _compDataLoaded = true;
@@ -140,16 +134,16 @@ class _HistoryPageState extends State<HistoryPage>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('히스토리'),
+        title: const Text('History'),
         backgroundColor: _mainGreen,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // ─── 읽기 테스트 ─────────────────────────────
-          Text(
-            '📖 읽기 테스트',
-            style: const TextStyle(
+          // ─── Reading Test ─────────────────────────────
+          const Text(
+            '📖 Reading Test',
+            style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: _darkGreen,
@@ -159,8 +153,8 @@ class _HistoryPageState extends State<HistoryPage>
           Card(
             color: Colors.white,
             elevation: 2,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             margin: const EdgeInsets.only(bottom: 16),
             child: Padding(
               padding: const EdgeInsets.all(12),
@@ -168,12 +162,12 @@ class _HistoryPageState extends State<HistoryPage>
             ),
           ),
 
-          // ─── 읽기 테스트 표 ─────────────────────────────
+          // ─── Reading Table ─────────────────────────────
           Card(
             color: _lightGreen.withOpacity(0.3),
             elevation: 1,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             margin: const EdgeInsets.only(bottom: 32),
             child: Padding(
               padding: const EdgeInsets.all(8),
@@ -183,7 +177,6 @@ class _HistoryPageState extends State<HistoryPage>
                   border: Border.all(color: _lightGreen),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                // ★ 여기만 LayoutBuilder로 감싸서 폭 꽉 채우기
                 child: LayoutBuilder(
                   builder: (ctx, constraints) {
                     final tableWidth = constraints.maxWidth;
@@ -203,25 +196,53 @@ class _HistoryPageState extends State<HistoryPage>
                                 if (!snap.hasData) return const SizedBox();
                                 final docs = snap.data!.docs;
                                 return DataTable(
-                                  headingRowColor: MaterialStateProperty.all(_lightGreen),
-                                  dataRowColor: MaterialStateProperty.all(Colors.white),
+                                  headingRowColor:
+                                      MaterialStateProperty.all(_lightGreen),
+                                  dataRowColor:
+                                      MaterialStateProperty.all(Colors.white),
                                   columns: const [
-                                    DataColumn(label: Text('날짜', style: TextStyle(color: Colors.black))),
-                                    DataColumn(label: Text('정확도', style: TextStyle(color: Colors.black))),
-                                    DataColumn(label: Text('단어수', style: TextStyle(color: Colors.black))),
-                                    DataColumn(label: Text('소요시간', style: TextStyle(color: Colors.black))),
+                                    DataColumn(
+                                        label: Text('Date',
+                                            style: TextStyle(
+                                                color: Colors.black))),
+                                    DataColumn(
+                                        label: Text('Accuracy',
+                                            style: TextStyle(
+                                                color: Colors.black))),
+                                    DataColumn(
+                                        label: Text('Words',
+                                            style: TextStyle(
+                                                color: Colors.black))),
+                                    DataColumn(
+                                        label: Text('Duration (s)',
+                                            style: TextStyle(
+                                                color: Colors.black))),
                                   ],
                                   rows: docs.map((d) {
-                                    final ts = (d['timestamp'] as Timestamp).toDate();
-                                    final date = '${ts.month}/${ts.day} ${ts.hour}:${ts.minute.toString().padLeft(2, '0')}';
-                                    final acc   = (d['accuracy'] as num).toDouble();
-                                    final words = (d['words_read'] as num).toInt();
-                                    final secs  = (d['duration_seconds'] as num).toInt();
+                                    final ts =
+                                        (d['timestamp'] as Timestamp).toDate();
+                                    final date =
+                                        '${ts.month}/${ts.day} ${ts.hour}:${ts.minute.toString().padLeft(2, '0')}';
+                                    final acc =
+                                        (d['accuracy'] as num).toDouble();
+                                    final words =
+                                        (d['words_read'] as num).toInt();
+                                    final secs =
+                                        (d['duration_seconds'] as num).toInt();
                                     return DataRow(cells: [
-                                      DataCell(Text(date,   style: const TextStyle(color: Colors.black))),
-                                      DataCell(Text('${acc.toStringAsFixed(1)}%', style: const TextStyle(color: Colors.black))),
-                                      DataCell(Text('$words', style: const TextStyle(color: Colors.black))),
-                                      DataCell(Text('${secs}초', style: const TextStyle(color: Colors.black))),
+                                      DataCell(Text(date,
+                                          style: const TextStyle(
+                                              color: Colors.black))),
+                                      DataCell(Text(
+                                          '${acc.toStringAsFixed(1)}%',
+                                          style: const TextStyle(
+                                              color: Colors.black))),
+                                      DataCell(Text('$words',
+                                          style: const TextStyle(
+                                              color: Colors.black))),
+                                      DataCell(Text('$secs',
+                                          style: const TextStyle(
+                                              color: Colors.black))),
                                     ]);
                                   }).toList(),
                                 );
@@ -237,10 +258,10 @@ class _HistoryPageState extends State<HistoryPage>
             ),
           ),
 
-          // ─── 이해도 테스트 ─────────────────────────────
-          Text(
-            '🧠 이해도 테스트',
-            style: const TextStyle(
+          // ─── Comprehension Test ─────────────────────────────
+          const Text(
+            '🧠 Comprehension Test',
+            style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: _darkGreen,
@@ -250,8 +271,8 @@ class _HistoryPageState extends State<HistoryPage>
           Card(
             color: Colors.white,
             elevation: 2,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             margin: const EdgeInsets.only(bottom: 16),
             child: Padding(
               padding: const EdgeInsets.all(12),
@@ -259,12 +280,12 @@ class _HistoryPageState extends State<HistoryPage>
             ),
           ),
 
-          // ─── 이해도 테스트 표 ─────────────────────────────
+          // ─── Comprehension Table ─────────────────────────────
           Card(
             color: _lightGreen.withOpacity(0.3),
             elevation: 1,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             margin: const EdgeInsets.only(bottom: 32),
             child: Padding(
               padding: const EdgeInsets.all(8),
@@ -293,28 +314,56 @@ class _HistoryPageState extends State<HistoryPage>
                                 if (!snap.hasData) return const SizedBox();
                                 final docs = snap.data!.docs;
                                 return DataTable(
-                                  headingRowColor: MaterialStateProperty.all(_lightGreen),
-                                  dataRowColor: MaterialStateProperty.all(Colors.white),
+                                  headingRowColor:
+                                      MaterialStateProperty.all(_lightGreen),
+                                  dataRowColor:
+                                      MaterialStateProperty.all(Colors.white),
                                   columns: const [
-                                    DataColumn(label: Text('날짜', style: TextStyle(color: Colors.black))),
-                                    DataColumn(label: Text('문제수', style: TextStyle(color: Colors.black))),
-                                    DataColumn(label: Text('정답수', style: TextStyle(color: Colors.black))),
-                                    DataColumn(label: Text('정답률', style: TextStyle(color: Colors.black))),
+                                    DataColumn(
+                                        label: Text('Date',
+                                            style: TextStyle(
+                                                color: Colors.black))),
+                                    DataColumn(
+                                        label: Text('Total Questions',
+                                            style: TextStyle(
+                                                color: Colors.black))),
+                                    DataColumn(
+                                        label: Text('Correct Answers',
+                                            style: TextStyle(
+                                                color: Colors.black))),
+                                    DataColumn(
+                                        label: Text('Accuracy (%)',
+                                            style: TextStyle(
+                                                color: Colors.black))),
                                   ],
                                   rows: docs.map((d) {
-                                    final data = d.data()! as Map<String, dynamic>;
-                                    final ts = (data['timestamp'] as Timestamp).toDate();
-                                    final date = '${ts.month}/${ts.day} ${ts.hour}:${ts.minute.toString().padLeft(2, '0')}';
-                                    final total  = data['total_questions'] as int;
-                                    final correct= data['correct_answers'] as int;
-                                    final pct    = total > 0
-                                        ? (correct / total * 100).toStringAsFixed(1)
+                                    final data =
+                                        d.data()! as Map<String, dynamic>;
+                                    final ts = (data['timestamp'] as Timestamp)
+                                        .toDate();
+                                    final date =
+                                        '${ts.month}/${ts.day} ${ts.hour}:${ts.minute.toString().padLeft(2, '0')}';
+                                    final total =
+                                        data['total_questions'] as int;
+                                    final correct =
+                                        data['correct_answers'] as int;
+                                    final pct = total > 0
+                                        ? (correct / total * 100)
+                                            .toStringAsFixed(1)
                                         : '0';
                                     return DataRow(cells: [
-                                      DataCell(Text(date,   style: const TextStyle(color: Colors.black))),
-                                      DataCell(Text('$total', style: const TextStyle(color: Colors.black))),
-                                      DataCell(Text('$correct', style: const TextStyle(color: Colors.black))),
-                                      DataCell(Text('$pct%', style: const TextStyle(color: Colors.black))),
+                                      DataCell(Text(date,
+                                          style: const TextStyle(
+                                              color: Colors.black))),
+                                      DataCell(Text('$total',
+                                          style: const TextStyle(
+                                              color: Colors.black))),
+                                      DataCell(Text('$correct',
+                                          style: const TextStyle(
+                                              color: Colors.black))),
+                                      DataCell(Text('$pct%',
+                                          style: const TextStyle(
+                                              color: Colors.black))),
                                     ]);
                                   }).toList(),
                                 );
@@ -330,7 +379,7 @@ class _HistoryPageState extends State<HistoryPage>
             ),
           ),
 
-          // ─── 통계 보기 버튼 ─────────────────────────────
+          // ─── Statistics Button ─────────────────────────────
           ElevatedButton(
             onPressed: () => Navigator.push(
               context,
@@ -340,9 +389,10 @@ class _HistoryPageState extends State<HistoryPage>
               backgroundColor: _mainGreen,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('통계 보기'),
+            child: const Text('View Statistics'),
           ),
           const SizedBox(height: 16),
         ],

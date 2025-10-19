@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'participant_info_page.dart';
 import 'signup_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -28,7 +27,7 @@ class _LoginPageState extends State<LoginPage> {
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-      // 로그인만 처리하고, 이전(AuthGate) 화면으로 돌아가기
+      // After login, go back to AuthGate
       Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
     } on FirebaseAuthException catch (e) {
       setState(() {
@@ -58,7 +57,7 @@ class _LoginPageState extends State<LoginPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Text(
-                '로그인',
+                'Login',
                 style: TextStyle(
                   fontSize: 30,
                   fontWeight: FontWeight.bold,
@@ -94,10 +93,12 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      '정확한 난독증 분석을 위해 로그인 해주세요.',
+                      'Please log in to continue with your Dyslexia Analysis.',
                       style: TextStyle(fontSize: 14, color: Colors.black54),
                     ),
                     const SizedBox(height: 24),
+
+                    // Email field
                     TextField(
                       controller: _emailController,
                       decoration: InputDecoration(
@@ -112,6 +113,8 @@ class _LoginPageState extends State<LoginPage> {
                       keyboardType: TextInputType.emailAddress,
                     ),
                     const SizedBox(height: 16),
+
+                    // Password field
                     TextField(
                       controller: _passwordController,
                       obscureText: true,
@@ -126,12 +129,16 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                     const SizedBox(height: 16),
+
+                    // Error
                     if (_error != null)
                       Text(
                         _error!,
                         style: const TextStyle(color: Colors.red),
                       ),
                     const SizedBox(height: 20),
+
+                    // Login button
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -150,13 +157,15 @@ class _LoginPageState extends State<LoginPage> {
                                 color: Colors.white,
                               )
                             : const Text(
-                                '로그인',
+                                'Login',
                                 style: TextStyle(
                                     fontSize: 18, color: Colors.white),
                               ),
                       ),
                     ),
                     const SizedBox(height: 12),
+
+                    // Sign up navigation
                     TextButton(
                       onPressed: () {
                         Navigator.push(
@@ -166,7 +175,7 @@ class _LoginPageState extends State<LoginPage> {
                         );
                       },
                       child: const Text(
-                        '회원가입 하러 가기',
+                        "Don't have an account? Sign Up",
                         style: TextStyle(color: Colors.black54),
                       ),
                     ),
@@ -180,5 +189,4 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
-
 

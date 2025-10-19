@@ -1,15 +1,13 @@
-
 import 'package:flutter/material.dart';
 import '../services/firestore_service.dart';
 import 'reading_speed_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'main_menu_page.dart';          // ← 이걸 추가
-
+import 'main_menu_page.dart';
 
 class ParticipantInfoPage extends StatefulWidget {
-  /// 편집 모드면 true (메인 메뉴 ▶ 프로필 수정)
-  /// 등록 모드면 false (로그인 후 첫 진입 ▶ 프로필 입력)
+  /// If true → editing mode (from Main Menu)
+  /// If false → first-time registration after login
   final bool isEditing;
 
   const ParticipantInfoPage({
@@ -32,7 +30,6 @@ class _ParticipantInfoPageState extends State<ParticipantInfoPage> {
   @override
   void initState() {
     super.initState();
-    // isEditing 모드라면 파이어스토어에서 기존 프로필 불러오기
     if (widget.isEditing) {
       _loadExistingProfile();
     }
@@ -41,21 +38,18 @@ class _ParticipantInfoPageState extends State<ParticipantInfoPage> {
   Future<void> _loadExistingProfile() async {
     try {
       final uid = FirebaseAuth.instance.currentUser!.uid;
-      final snap = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .get();
+      final snap =
+          await FirebaseFirestore.instance.collection('users').doc(uid).get();
       if (snap.exists) {
         final data = snap.data()!;
-        // 불러온 데이터를 각 컨트롤러/드롭다운에 반영
-        _nameCtrl.text      = (data['name'] ?? '') as String;
-        _ageCtrl.text       = (data['age'] ?? '').toString();
-        _selectedGender     = data['gender'] as String?;
-        _selectedEducation  = data['education'] as String?;
-        setState(() {}); // UI 갱신
+        _nameCtrl.text = (data['name'] ?? '') as String;
+        _ageCtrl.text = (data['age'] ?? '').toString();
+        _selectedGender = data['gender'] as String?;
+        _selectedEducation = data['education'] as String?;
+        setState(() {});
       }
     } catch (e) {
-      _showErrorDialog('프로필 불러오기 실패: $e');
+      _showErrorDialog('Failed to load profile: $e');
     }
   }
 
@@ -70,7 +64,7 @@ class _ParticipantInfoPageState extends State<ParticipantInfoPage> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('오류'),
+        title: const Text('Error'),
         content: Text(message),
         actions: [
           TextButton(
@@ -82,11 +76,11 @@ class _ParticipantInfoPageState extends State<ParticipantInfoPage> {
     );
   }
 
-   void _onNext() async {
+  void _onNext() async {
     if (!_formKey.currentState!.validate()) return;
-    final name      = _nameCtrl.text.trim();
-    final age       = int.parse(_ageCtrl.text.trim());
-    final gender    = _selectedGender!;
+    final name = _nameCtrl.text.trim();
+    final age = int.parse(_ageCtrl.text.trim());
+    final gender = _selectedGender!;
     final education = _selectedEducation!;
 
     try {
@@ -98,20 +92,17 @@ class _ParticipantInfoPageState extends State<ParticipantInfoPage> {
       );
 
       if (widget.isEditing) {
-        // 수정 모드: 이전 화면(메인 메뉴)으로 돌아가기
         Navigator.pop(context);
       } else {
-        // 신규 등록 모드: MainMenuPage 로 이동
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const MainMenuPage()),
         );
       }
     } catch (e) {
-      _showErrorDialog('프로필 저장 실패: $e');
+      _showErrorDialog('Failed to save profile: $e');
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -141,7 +132,7 @@ class _ParticipantInfoPageState extends State<ParticipantInfoPage> {
                 children: [
                   const Center(
                     child: Text(
-                      '기초 정보 입력',
+                      'Enter Basic Information',
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -154,7 +145,7 @@ class _ParticipantInfoPageState extends State<ParticipantInfoPage> {
                   TextFormField(
                     controller: _nameCtrl,
                     decoration: InputDecoration(
-                      labelText: '이름',
+                      labelText: 'Name',
                       filled: true,
                       fillColor: const Color(0xFFF1F8E9),
                       border: OutlineInputBorder(
@@ -162,14 +153,15 @@ class _ParticipantInfoPageState extends State<ParticipantInfoPage> {
                         borderSide: BorderSide.none,
                       ),
                     ),
-                    validator: (v) => v == null || v.trim().isEmpty ? '이름을 입력해 주세요.' : null,
+                    validator: (v) =>
+                        v == null || v.trim().isEmpty ? 'Please enter your name.' : null,
                   ),
                   const SizedBox(height: 16),
 
                   TextFormField(
                     controller: _ageCtrl,
                     decoration: InputDecoration(
-                      labelText: '나이',
+                      labelText: 'Age',
                       filled: true,
                       fillColor: const Color(0xFFF1F8E9),
                       border: OutlineInputBorder(
@@ -179,9 +171,11 @@ class _ParticipantInfoPageState extends State<ParticipantInfoPage> {
                     ),
                     keyboardType: TextInputType.number,
                     validator: (v) {
-                      if (v == null || v.trim().isEmpty) return '나이를 입력해 주세요.';
+                      if (v == null || v.trim().isEmpty) {
+                        return 'Please enter your age.';
+                      }
                       final n = int.tryParse(v.trim());
-                      if (n == null || n <= 0) return '올바른 나이를 입력해 주세요.';
+                      if (n == null || n <= 0) return 'Please enter a valid age.';
                       return null;
                     },
                   ),
@@ -190,7 +184,7 @@ class _ParticipantInfoPageState extends State<ParticipantInfoPage> {
                   DropdownButtonFormField<String>(
                     value: _selectedGender,
                     decoration: InputDecoration(
-                      labelText: '성별',
+                      labelText: 'Gender',
                       filled: true,
                       fillColor: const Color(0xFFF1F8E9),
                       border: OutlineInputBorder(
@@ -198,18 +192,18 @@ class _ParticipantInfoPageState extends State<ParticipantInfoPage> {
                         borderSide: BorderSide.none,
                       ),
                     ),
-                    items: ['남성', '여성', '기타']
+                    items: ['Male', 'Female', 'Other']
                         .map((g) => DropdownMenuItem(value: g, child: Text(g)))
                         .toList(),
                     onChanged: (v) => setState(() => _selectedGender = v),
-                    validator: (v) => v == null ? '성별을 선택해 주세요.' : null,
+                    validator: (v) => v == null ? 'Please select your gender.' : null,
                   ),
                   const SizedBox(height: 16),
 
                   DropdownButtonFormField<String>(
                     value: _selectedEducation,
                     decoration: InputDecoration(
-                      labelText: '최종학력',
+                      labelText: 'Education Level',
                       filled: true,
                       fillColor: const Color(0xFFF1F8E9),
                       border: OutlineInputBorder(
@@ -218,14 +212,14 @@ class _ParticipantInfoPageState extends State<ParticipantInfoPage> {
                       ),
                     ),
                     items: [
-                      '초등학교',
-                      '중학교',
-                      '고등학교',
-                      '대학교 (학사)',
-                      '대학교 (석사 이상)',
+                      'Elementary School',
+                      'Middle School',
+                      'High School',
+                      'University (Bachelor)',
+                      'Graduate School (Master or higher)',
                     ].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
                     onChanged: (v) => setState(() => _selectedEducation = v),
-                    validator: (v) => v == null ? '학력을 선택해 주세요.' : null,
+                    validator: (v) => v == null ? 'Please select your education level.' : null,
                   ),
                   const SizedBox(height: 32),
 
@@ -240,7 +234,10 @@ class _ParticipantInfoPageState extends State<ParticipantInfoPage> {
                         ),
                       ),
                       onPressed: _onNext,
-                      child: const Text('다음', style: TextStyle(fontSize: 16, color: Colors.white)),
+                      child: const Text(
+                        'Next',
+                        style: TextStyle(fontSize: 16, color: Colors.white),
+                      ),
                     ),
                   ),
                 ],

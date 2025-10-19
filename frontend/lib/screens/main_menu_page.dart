@@ -1,19 +1,16 @@
-// lib/screens/main_menu_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'participant_info_page.dart';
 import 'reading_speed_page.dart';
 
-
-
 class MainMenuPage extends StatelessWidget {
   const MainMenuPage({Key? key}) : super(key: key);
 
   Future<Map<String, dynamic>> _loadProfile() async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
-    final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final doc =
+        await FirebaseFirestore.instance.collection('users').doc(uid).get();
     return doc.data()!;
   }
 
@@ -37,11 +34,11 @@ class MainMenuPage extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // 로고
+                    // Logo
                     Image.asset('assets/images/dyslexia_logo.png', width: 160),
                     const SizedBox(height: 16),
 
-                    // DysTrace 타이틀
+                    // Title
                     Text(
                       "DysTrace",
                       style: TextStyle(
@@ -51,7 +48,7 @@ class MainMenuPage extends StatelessWidget {
                         letterSpacing: 1.5,
                         shadows: [
                           Shadow(
-                            offset: Offset(0.5, 0.5),
+                            offset: const Offset(0.5, 0.5),
                             blurRadius: 0,
                             color: Colors.green[800]!,
                           )
@@ -60,19 +57,20 @@ class MainMenuPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
 
-                    // 간단 설명
+                    // Description
                     Text(
-                      "DysTrace는 읽기 속도와 정확도를 측정하고, 이해도를 확인할 수 있는 도구입니다.",
+                      "DysTrace is a tool that measures reading speed and accuracy,\n"
+                      "and evaluates comprehension performance.",
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 16, color: Colors.grey[700]),
                     ),
                     const SizedBox(height: 40),
 
-                    // 두 개의 버튼을 가로 배치 (크기 고정)
+                    // Buttons (horizontal layout)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // 테스트하기 버튼
+                        // Start Test Button
                         SizedBox(
                           width: 200,
                           height: 50,
@@ -96,7 +94,7 @@ class MainMenuPage extends StatelessWidget {
                               ),
                             ),
                             child: const Text(
-                              "테스트하기",
+                              "Start Test",
                               style: TextStyle(fontSize: 16, color: Colors.white),
                             ),
                           ),
@@ -104,7 +102,7 @@ class MainMenuPage extends StatelessWidget {
 
                         const SizedBox(width: 16),
 
-                        // 프로필 수정하기 버튼
+                        // Edit Profile Button
                         SizedBox(
                           width: 200,
                           height: 50,
@@ -113,7 +111,8 @@ class MainMenuPage extends StatelessWidget {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => const ParticipantInfoPage(isEditing: true),
+                                  builder: (_) =>
+                                      const ParticipantInfoPage(isEditing: true),
                                 ),
                               );
                             },
@@ -124,7 +123,7 @@ class MainMenuPage extends StatelessWidget {
                               ),
                             ),
                             child: const Text(
-                              "프로필 수정하기",
+                              "Edit Profile",
                               style: TextStyle(fontSize: 16, color: Colors.white),
                             ),
                           ),
@@ -134,15 +133,16 @@ class MainMenuPage extends StatelessWidget {
 
                     const SizedBox(height: 48),
 
-                    // 설명 박스
+                    // Instruction Box
                     Center(
                       child: Container(
                         constraints: const BoxConstraints(maxWidth: 920),
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 32),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF1F8E9),
                           borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
+                          boxShadow: const [
                             BoxShadow(
                               color: Colors.black12,
                               blurRadius: 6,
@@ -151,19 +151,23 @@ class MainMenuPage extends StatelessWidget {
                           ],
                         ),
                         child: const Text(
-                          "1. 화면 준비\n"
-                          "화면에 나타나는 하얀색에 파란색 테두리의 점들을 나타나는 순서대로 눌러 눈 위치를 맞춰주세요.\n"
-                          "작은 빨간색 점들이 눈을 따라갈텐데 빨간색 점들이 하얀색 점에 모여졌을때 하얀색 점을 눌러주셔야 보다 정확한 결과를 낼 수 있어요.\n\n"
-                          "2. 지문 읽기 테스트\n"
-                          "'지문 읽기 테스트'는 3번에 걸쳐서 진행됩니다.\n"
-                          "‘start’ 버튼을 눌러 지문을 소리 내어 읽습니다. 읽는 동안 시간이 측정되며, 멈추려면 'stop’ 버튼을 눌러주세요.\n\n"
-                          "3. 이해도 확인 테스트\n"
-                          "'지문 읽기 테스트'가 끝나면 '이해도 확인 테스트'가 진행됩니다.\n"
-                          "'이해도 확인 테스트'는 지문을 읽은 후 이해도를 확인하기 위한 간단한 선택형 문제입니다.\n"
-                          "세 지문이 주어지며, 각 지문당 2개의 객관식 독해문제로 구성됩니다.\n\n"
-                          "4. 결과 보기\n"
-                          "모든 단계를 마치면 ‘기록 보기’에서 지난 결과를 차트와 표로 확인할 수 있어요.\n\n"
-                          "도움이 필요할 때는 우측 상단 ‘?’ 아이콘을 눌러주세요.",
+                          "1. Screen Calibration\n"
+                          "Tap the white dots with blue outlines in the order they appear "
+                          "to calibrate your eye position.\n"
+                          "Small red dots will track your gaze — when they align with the white dots, "
+                          "tap the white dots for more accurate results.\n\n"
+                          "2. Reading Test\n"
+                          "The 'Reading Test' is conducted three times.\n"
+                          "Press 'Start' to begin reading aloud. The timer runs during reading, "
+                          "and you can stop anytime by pressing 'Stop'.\n\n"
+                          "3. Comprehension Test\n"
+                          "After completing the reading tests, the 'Comprehension Test' will begin.\n"
+                          "This is a simple multiple-choice quiz to check your understanding of each passage.\n"
+                          "There are three passages, each with two comprehension questions.\n\n"
+                          "4. View Results\n"
+                          "After completing all stages, you can check your previous results "
+                          "with charts and tables on the 'History' page.\n\n"
+                          "If you need help, tap the '?' icon in the top-right corner.",
                           textAlign: TextAlign.left,
                           style: TextStyle(
                             fontSize: 15.5,

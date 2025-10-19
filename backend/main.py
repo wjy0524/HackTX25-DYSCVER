@@ -1,209 +1,216 @@
 import os
 import json
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel
-from pathlib import Path
 import tempfile
 import subprocess
 import wave
-from fastapi.middleware.cors import CORSMiddleware
+from pathlib import Path
 
-# STT 전사 함수 (별도 파일)
-from transcribe import transcribe_korean_audio
-# 유사도 계산 함수 (별도 파일)
-from similarity_percent import dist
-from utils import compute_eye_metrics
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 import joblib
 
 from openai import OpenAI
 from dotenv import load_dotenv
-load_dotenv()  # .env 파일을 로드합니다
+load_dotenv()
 
-# 1) 파일 최상단(글로벌)에서 불러온 dyslexia 모델 ml_pipeline에 관한 것이다. 무시해도 좋다
+# Local modules
+from transcribe import transcribe_audio       # formerly transcribe_korean_audio
+from similarity_percent import dist           # Levenshtein similarity
+from utils import compute_eye_metrics
+
+# Load pre-trained dyslexia model
 dyslexia_model = joblib.load("../ml_pipeline/best_dyslexia_rf.joblib")
 TOTAL_Q_PER_USER = 6
 
-# 새 1.x 인터페이스용 클라이언트 인스턴스 생성
+# Initialize OpenAI client
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+# Create FastAPI app
 app = FastAPI()
+
+# CORS for Flutter web app
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Flutter 웹 호스트
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
     allow_credentials=True,
 )
+
+
+# ----------------------------- MODELS -----------------------------
 
 class UserInfo(BaseModel):
     age: int
     gender: str
     native_language: str
 
+
+# ----------------------------- ENDPOINTS -----------------------------
+
 @app.post("/get-passages")
 async def get_passages(info: UserInfo):
     """
-    사용자의 인구통계 정보에 맞춰 GPT로부터 3개의 읽기 지문을 생성
+    Generate 3 reading passages based on user's demographic information
+    (age, gender, native language) using GPT.
     """
-    system_prompt = ( 
-        "당신은 난독증 연구를 위한 읽기 지문 생성 전문가입니다.\n"
-        "입력으로 사용자의 인구통계 정보(나이, 성별, 모국어)를 JSON 형태로 받으면,\n"
-        "연령대에 맞는 지문 3개를 생성해 주세요.\n"
-        "반드시 최상위에 `passages` 키만 포함된 순수 JSON 형식으로 출력하세요. "
-        "추가 설명은 절대 포함하지 마세요."
+    system_prompt = (
+        "You are a professional reading passage generator for dyslexia research.\n"
+        "Given a JSON input containing the user's demographic information "
+        "(age, gender, native language), create three age-appropriate reading passages.\n"
+        "Return ONLY pure JSON with a single top-level key `passages`. "
+        "Do not include any explanations, notes, or additional text."
     )
+
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": system_prompt},
-            {"role": "user",   "content": json.dumps(info.dict())}
+            {"role": "user", "content": json.dumps(info.dict())}
         ]
     )
     raw = response.choices[0].message.content
-    print("▶ GPT 응답(raw):", raw)
-    # 파싱 및 에러 처리
+    print("▶ GPT raw response:", raw)
+
     try:
         passages = json.loads(raw)["passages"]
     except (json.JSONDecodeError, KeyError) as e:
-        raise HTTPException(status_code=500, detail=f"Passages 파싱 오류: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to parse GPT passages: {e}")
+
     return {"passages": passages}
-    
+
 
 @app.post("/reading_test")
 async def reading_test(
-    expected: str = Form(..., description="기준 문장"),
+    expected: str = Form(..., description="Reference text"),
     eye_data: str = Form(...),
-    audio: UploadFile = File(..., description="사용자 녹음 파일(.webm 등)")
+    audio: UploadFile = File(..., description="Recorded audio file (.webm, .wav, etc.)")
 ):
     """
-    사용자 녹음 파일을 받아 Whisper 전사 후 유사도 계산
+    Receive a user’s recorded reading audio, transcribe it via Whisper,
+    compute similarity to the reference text, and return reading metrics.
     """
-    # 1) 웹엠(.webm) 파일 임시 저장
+    # 1) Save temporary input file
     suffix = Path(audio.filename).suffix or ".webm"
     tmp_input = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
-    input_path = tmp_input.name
     content = await audio.read()
     tmp_input.write(content)
     tmp_input.close()
+    input_path = tmp_input.name
 
-    # 2) Whisper 호환용 WAV로 변환 (16kHz, 모노)
+    # 2) Convert audio to 16kHz mono WAV (Whisper compatible)
     tmp_wav = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
     wav_path = tmp_wav.name
     try:
         subprocess.run(
-            [
-                "ffmpeg", "-y",
-                "-i", input_path,
-                "-ar", "16000",
-                "-ac", "1",
-                wav_path
-            ],
+            ["ffmpeg", "-y", "-i", input_path, "-ar", "16000", "-ac", "1", wav_path],
             check=True,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
         )
     except subprocess.CalledProcessError as e:
-        raise HTTPException(status_code=500, detail=f"오디오 변환 실패: {e}")
+        raise HTTPException(status_code=500, detail=f"Audio conversion failed: {e}")
 
-    # 3) STT 전사 수행
-    recognized_text = transcribe_korean_audio(wav_path)
+    # 3) Speech-to-text transcription
+    recognized_text = transcribe_audio(wav_path)
 
-    # 4) Levenshtein 기반 유사도 계산
+    # 4) Compute Levenshtein-based similarity
     accuracy = dist(expected.strip(), recognized_text.strip())
 
-    # 5) 단어 수 세기
+    # 5) Count words
     words_read = len(recognized_text.strip().split())
 
-    # 6) 오디오 길이(초) 계산
+    # 6) Compute audio duration (seconds)
     with wave.open(wav_path, "rb") as wf:
         frames = wf.getnframes()
-        rate   = wf.getframerate()
+        rate = wf.getframerate()
         duration_seconds = int(frames / float(rate))
-    # 7) eye_data 파싱 & 메트릭 계산
+
+    # 7) Parse gaze data and compute eye-tracking metrics
     try:
         gaze_points = json.loads(eye_data)
     except json.JSONDecodeError:
         gaze_points = []
     fixation_count, avg_fix_dur, regression_count = compute_eye_metrics(gaze_points)
 
-    # 추가 지표
-    cognitive_load = (sum(pt['t'] for pt in gaze_points) / len(gaze_points)) \
-                     if gaze_points else 0
-    fluency_score  = words_read / (regression_count + 1)
+    # 8) Compute additional derived metrics
+    cognitive_load = (sum(pt['t'] for pt in gaze_points) / len(gaze_points)) if gaze_points else 0
+    fluency_score = words_read / (regression_count + 1)
 
-
-# 8) 결과 반환 (accuracy, words_read, duration_seconds 모두 포함)
+    # 9) Return all computed results
     return JSONResponse({
-        "accuracy":             accuracy,            # 0~100%
-        "words_read":           words_read,
-        "duration_seconds":     duration_seconds,
-        "fixation_count":       fixation_count,
-        "avg_fixation_duration": avg_fix_dur,         # ms 단위
-        "regression_count":     regression_count,
-        "cognitive_load":       cognitive_load,      # 대략적 부하 지표
-        "fluency_score":        fluency_score,       # 유창성 지표
+        "accuracy": accuracy,                 # 0–100%
+        "words_read": words_read,
+        "duration_seconds": duration_seconds,
+        "fixation_count": fixation_count,
+        "avg_fixation_duration": avg_fix_dur, # milliseconds
+        "regression_count": regression_count,
+        "cognitive_load": cognitive_load,
+        "fluency_score": fluency_score,
     })
 
 
 @app.post("/get-comprehension-material")
 async def get_comprehension_material(info: UserInfo):
     """
-    3개의 이해도 지문(comprehension passages)과
-    각 지문당 2개의 질문(questions)을 생성합니다.
+    Generate 3 comprehension passages and 2 multiple-choice questions per passage.
     """
     system_prompt = """
-당신은 난독증 이해도 평가용 지문과 객관식 4지선다형 질문 생성 전문가입니다.
-입력으로 사용자의 인구통계 정보(나이, 성별, 모국어)를 JSON 형태로 받으면,
-연령대에 맞는 **150~200단어 분량의 긴** 이해도 지문 3개를 생성하고,
-각 지문에 대해 **2개의 객관식** 질문을 생성해주세요.
-각 질문은 반드시 다음 구조의 JSON 객체로 만들어야 합니다:
-```json
+You are an expert in generating comprehension passages and 4-choice questions for dyslexia screening.
+Given user demographic information (age, gender, native language) in JSON format,
+create three passages (150–200 words each) and two multiple-choice questions per passage.
+Each question must strictly follow this JSON structure:
+
 {
-  "question": "질문 텍스트",
-  "options": ["보기1","보기2","보기3","보기4"],
-  "answer": 2    // 정답 보기의 인덱스 (0~3)
+  "question": "Question text",
+  "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+  "answer": 2
 }
-```
-최상위에는 `comprehensions` 리스트만 포함된 순수 JSON을 출력하세요.
-추가 설명은 절대 포함하지마세요
+
+Return ONLY pure JSON with a single top-level key `comprehensions`.
+Do not include explanations, markdown, or additional text.
     """
-    user_json = json.dumps(info.dict())
+
     res = client.chat.completions.create(
-      model="gpt-4o-mini",
-      messages=[
-        {"role": "system",  "content": system_prompt},
-        {"role": "user",    "content": user_json},
-      ],
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": json.dumps(info.dict())},
+        ],
     )
     raw = res.choices[0].message.content
     try:
         data = json.loads(raw)
-        # data == {"comprehensions": [ { "passage": str, "questions": [str, str] }, ... ] }
     except Exception as e:
-        raise HTTPException(500, f"이해도 자료 파싱 실패: {e}")
+        raise HTTPException(500, f"Failed to parse comprehension materials: {e}")
+
     return JSONResponse(data)
 
 
-#dyslexia 모델 ml_pipeline에 관한 것이다. 무시해도 좋다
-# 2) 요청 바디 스키마 정의
+# ----------------------------- DYSLEXIA PREDICTION -----------------------------
+
 class DyslexiaRequest(BaseModel):
     words_read: int
     duration_seconds: int
     accuracy: float
     comprehension_correct: int
 
-# 3) 엔드포인트 추가
+
 @app.post("/predict-dyslexia")
 def predict_dyslexia(req: DyslexiaRequest):
-    # 파생 변수: WPM, 이해율
+    """
+    Predict dyslexia risk level based on reading and comprehension metrics.
+    """
+    # Derived features: words per minute (WPM) and comprehension rate
     wpm = req.words_read / (req.duration_seconds / 60)
-    comprehension_rate = req.comprehension_correct / 2  # 총 문제 수(2)로 나눔
+    comprehension_rate = req.comprehension_correct / 2  # assuming 2 questions per test
 
-    # 모델 입력값 준비
+    # Model input
     X_new = [[wpm, req.accuracy, comprehension_rate]]
 
-    # 예측
-    risk_label = dyslexia_model.predict(X_new)[0]  # 0 or 1
+    # Predict risk (0 = low, 1 = high)
+    risk_label = dyslexia_model.predict(X_new)[0]
 
     return {"dyslexia_risk": int(risk_label)}

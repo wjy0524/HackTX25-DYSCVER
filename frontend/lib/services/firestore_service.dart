@@ -12,7 +12,7 @@ class FirestoreService {
     required String education,
   }) async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) throw Exception('로그인된 사용자가 없습니다.');
+    if (user == null) throw Exception('No authenticated user found.');
 
     final doc = FirebaseFirestore.instance
         .collection('users')
