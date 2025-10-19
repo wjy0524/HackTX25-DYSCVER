@@ -1,44 +1,85 @@
 # ml_pipeline/train_and_save.py
+
+
 import pandas as pd
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, roc_auc_score
 import joblib
 
-# 1) 데이터 로드
-df = pd.read_csv("labeled_data.csv")  
-# → 컬럼: words_read, duration_seconds, accuracy, comprehension_correct, dyslexia_label
 
-# 2) 파생 변수
-TOTAL_Q_PER_USER = 2  # 이해도 테스트 당 문제 수
-df["wpm"]                = df["words_read"] / (df["duration_seconds"]/60)
+# ----------------------------------------------------------
+# Load dataset
+# ----------------------------------------------------------
+# The dataset contains columns:
+# words_read, duration_seconds, accuracy, comprehension_correct, dyslexia_label
+df = pd.read_csv("labeled_data.csv")
+
+
+# ----------------------------------------------------------
+# Create derived (calculated) features
+# ----------------------------------------------------------
+# TOTAL_Q_PER_USER = number of comprehension questions per test
+
+
+TOTAL_Q_PER_USER = 6
+
+
+# wpm: words per minute (reading speed)
+df["wpm"] = df["words_read"] / (df["duration_seconds"] / 60)
+
+
+# comprehension_rate: ratio of correctly answered comprehension questions
 df["comprehension_rate"] = df["comprehension_correct"] / TOTAL_Q_PER_USER
 
-# 3) 특성/타깃 분리
+
+# ----------------------------------------------------------
+# 3️⃣ Split features (X) and target (y)
+
+
+# Select features that most influence dyslexia prediction
 X = df[["wpm", "accuracy", "comprehension_rate"]]
-y = df["dyslexia_label"]  # 0 or 1
+# The target is dyslexia_label (1 = dyslexia risk, 0 = non-risk)
+y = df["dyslexia_label"]
 
-# 4) 학습/검증 세트
+
+# ----------------------------------------------------------
+# Train/test split
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, stratify=y, random_state=42
+   X, y, test_size=0.2, stratify=y, random_state=42
 )
 
-# 5) 모델 & 하이퍼파라미터 탐색
+
+# Train Random Forest with hyperparameter tuning
+# We test different combinations of parameters to find the best model
 param_grid = {
-    "n_estimators": [50,100,200],
-    "max_depth":    [None, 5, 10],
+   "n_estimators": [50, 100, 200],   # number of trees
+   "max_depth": [None, 5, 10],       # tree depth (None = full depth)
 }
+
+
 clf = GridSearchCV(
-    RandomForestClassifier(random_state=42),
-    param_grid, cv=3, scoring="roc_auc", n_jobs=-1
+   RandomForestClassifier(random_state=42),
+   param_grid,
+   cv=3,                 # 3-fold cross-validation
+   scoring="roc_auc",    # evaluate based on AUC (probability quality)
+   n_jobs=-1             # use all CPU cores
 )
+
+
 clf.fit(X_train, y_train)
 
-# 6) 평가
-y_pred = clf.predict(X_test)
-print(classification_report(y_test, y_pred))
-print("ROC AUC:", roc_auc_score(y_test, clf.predict_proba(X_test)[:,1]))
 
-# 7) 저장
+# Evaluate model performance
+y_pred = clf.predict(X_test)  # predicted labels (0 or 1)
+y_prob = clf.predict_proba(X_test)[:, 1]  # predicted probabilities (0~1)
+
+
+print("🔹 Classification Report:")
+print(classification_report(y_test, y_pred))
+print("🔹 ROC AUC Score:", roc_auc_score(y_test, y_prob))
+
+
+# Save best model to file
 joblib.dump(clf.best_estimator_, "best_dyslexia_rf.joblib")
-print("🎉 모델을 best_dyslexia_rf.joblib 로 저장했습니다.")
+print("🎉 Model saved as best_dyslexia_rf.joblib")

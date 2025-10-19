@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../model/comprehension.dart';
 import '../services/comprehension_service.dart';
-import 'history_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -47,6 +46,7 @@ class _ComprehensionPageState extends State<ComprehensionPage> {
   void _showResult(List<ComprehensionItem> items) async {
     final total = items.length * items[0].questions.length;
     var correct = 0;
+
     for (var i = 0; i < items.length; i++) {
       for (var j = 0; j < items[i].questions.length; j++) {
         if (_selected[i][j] == items[i].questions[j].answerIndex) {
@@ -73,21 +73,23 @@ class _ComprehensionPageState extends State<ComprehensionPage> {
       return;
     }
 
+    // ✅ DyslexiaResultPage로 이동 (예측 페이지)
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: const Text('Comprehension Test Results'),
-        content: Text('You answered $correct out of $total questions correctly.'),
+        title: const Text('Comprehension Test Completed'),
+        content: Text(
+          'You answered $correct out of $total questions correctly.\n\n'
+          'Analyzing your reading and comprehension data...',
+        ),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.of(ctx).pop();
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (_) => const HistoryPage()),
-              );
+              Navigator.pushReplacementNamed(context, '/result');
             },
-            child: const Text('View Results'),
+            child: const Text('View Dyslexia Prediction'),
           ),
         ],
       ),
@@ -248,4 +250,5 @@ class _ComprehensionPageState extends State<ComprehensionPage> {
     );
   }
 }
+
 

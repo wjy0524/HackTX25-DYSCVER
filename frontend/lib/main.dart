@@ -10,6 +10,7 @@ import 'screens/reading_speed_page.dart';
 import 'screens/history_page.dart';
 import 'screens/statistics_page.dart';
 import 'screens/dyslexia_info_page.dart';
+import 'screens/dyslexia_result_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,6 +49,7 @@ class DysTraceApp extends StatelessWidget {
         '/history': (context) => const HistoryPage(),
         '/statistics': (context) => const StatisticsPage(),
         '/info': (context) => const DyslexiaInfoPage(),
+        '/result': (context) => const DyslexiaResultPage(),
       },
     );
   }

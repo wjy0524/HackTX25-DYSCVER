@@ -198,7 +198,7 @@ class DyslexiaRequest(BaseModel):
     comprehension_correct: int
 
 
-@app.post("/predict-dyslexia")
+@app.post("/predict_dyslexia")
 def predict_dyslexia(req: DyslexiaRequest):
     """
     Predict dyslexia risk level based on reading and comprehension metrics.
